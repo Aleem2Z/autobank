@@ -10,8 +10,10 @@ import { Wallet } from "@/components/Wallet";
 import { Ledger } from "@/components/Ledger";
 import { PendingTransaction } from "@/components/PendingTransaction";
 import { ActionBar } from "@/components/ActionBar";
+import { SoundToggle } from "@/components/SoundToggle";
 import { BalanceTicker } from "@/components/animations/BalanceTicker";
 import { useRoom } from "@/lib/client/useRoom";
+import { useNotifications } from "@/lib/client/useNotifications";
 import type { Player, Transaction } from "@/lib/game/types";
 
 function pendingForYou(txs: Transaction[], you: string): Transaction[] {
@@ -28,6 +30,7 @@ function pendingForYou(txs: Transaction[], you: string): Transaction[] {
 
 export default function RoomClient({ code }: { code: string }) {
   const { room, you, status, error } = useRoom(code);
+  useNotifications(room, you);
   const [copied, setCopied] = useState(false);
 
   if (status === "loading") {
@@ -117,6 +120,7 @@ export default function RoomClient({ code }: { code: string }) {
             >
               {copied ? <Check className="size-4 text-[var(--mono-green)]" /> : <Copy className="size-4" />}
             </Button>
+            <SoundToggle />
           </div>
         </header>
 
