@@ -56,9 +56,9 @@ export function Wallet({
           </div>
         </div>
 
-        {/* Fan area — full card width, enough vertical room for the
-            portrait-oriented bills (188px tall) plus their fan rotation. */}
-        <div className="relative z-10 mt-3 h-44 pointer-events-none">
+        {/* Fan area — pl-10 nudges the fan center to the right of the
+            card; h-36 shaves ~32px off the previous height. */}
+        <div className="relative z-10 mt-2 h-36 pl-10 pointer-events-none">
           <BillFan cash={player.cash} />
         </div>
       </div>
