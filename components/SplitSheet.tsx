@@ -83,7 +83,7 @@ export function SplitSheet({
 
   return (
     <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
-      <SheetContent side="bottom" className="h-[80vh] overflow-y-auto">
+      <SheetContent side="bottom" className="h-auto max-h-[90vh] sm:max-w-lg sm:mx-auto sm:rounded-t-2xl overflow-y-auto">
         <SheetHeader>
           <SheetTitle>Split</SheetTitle>
           <SheetDescription>

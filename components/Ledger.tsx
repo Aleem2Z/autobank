@@ -197,6 +197,15 @@ export function Ledger({ room, you }: { room: Room; you: string }) {
                           &ldquo;{tx.reasonNote}&rdquo;
                         </span>
                       )}
+                      {tx.status === "pending" && tx.proposedBy === you && tx.kind !== "request-bank" && (
+                        <span className="text-accent-foreground/90 text-[10px] font-medium ml-auto whitespace-nowrap">
+                          ⏳ awaiting{" "}
+                          {tx.requiresConfirmFrom
+                            .filter((id) => !tx.confirmedBy.includes(id))
+                            .map((id) => nameOf(room, id))
+                            .join(", ") || "confirmation"}
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">

@@ -108,7 +108,7 @@ export function TradeSheet({
     <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
       <SheetContent
         side="bottom"
-        className="h-[92vh] overflow-y-auto"
+        className="h-auto max-h-[92vh] sm:max-w-2xl sm:mx-auto sm:rounded-t-2xl overflow-y-auto"
       >
         <SheetHeader>
           <SheetTitle>Trade</SheetTitle>
