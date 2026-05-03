@@ -1,17 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { toast } from "sonner";
 import { Banknote, Plus, Users, Split, ArrowLeftRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TransferSheet } from "./TransferSheet";
 import { SplitSheet } from "./SplitSheet";
+import { TradeSheet } from "./TradeSheet";
 import type { Player, Room } from "@/lib/game/types";
 
 type Open =
   | null
   | { kind: "transfer"; transferKind: "p2p" | "pay-bank" | "request-bank" }
-  | { kind: "split" };
+  | { kind: "split" }
+  | { kind: "trade" };
 
 export function ActionBar({ room, you }: { room: Room; you: Player }) {
   const [open, setOpen] = useState<Open>(null);
@@ -64,7 +65,7 @@ export function ActionBar({ room, you }: { room: Room; you: Player }) {
             variant="outline"
             size="sm"
             className="flex flex-col gap-0.5 h-auto py-1.5"
-            onClick={() => toast.info("Trade is coming soon.")}
+            onClick={() => setOpen({ kind: "trade" })}
           >
             <ArrowLeftRight className="size-4" />
             <span className="text-[10px]">Trade</span>
@@ -84,6 +85,10 @@ export function ActionBar({ room, you }: { room: Room; you: Player }) {
 
       {open?.kind === "split" && (
         <SplitSheet room={room} you={you} open onClose={close} />
+      )}
+
+      {open?.kind === "trade" && (
+        <TradeSheet room={room} you={you} open onClose={close} />
       )}
     </>
   );

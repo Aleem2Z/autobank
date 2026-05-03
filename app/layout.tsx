@@ -16,6 +16,19 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Autobank",
   description: "Multiplayer wallet for tabletop Monopoly.",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    title: "Autobank",
+    statusBarStyle: "default",
+  },
+};
+
+export const viewport = {
+  themeColor: "#1a6b3e",
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover" as const,
 };
 
 export default function RootLayout({

@@ -3,15 +3,16 @@
 import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
+import { AnimatePresence, motion } from "framer-motion";
 import { Check, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Wallet } from "@/components/Wallet";
 import { Ledger } from "@/components/Ledger";
 import { PendingTransaction } from "@/components/PendingTransaction";
 import { ActionBar } from "@/components/ActionBar";
+import { BalanceTicker } from "@/components/animations/BalanceTicker";
 import { useRoom } from "@/lib/client/useRoom";
-import { formatMoney } from "@/lib/utils";
-import type { Transaction } from "@/lib/game/types";
+import type { Player, Transaction } from "@/lib/game/types";
 
 function pendingForYou(txs: Transaction[], you: string): Transaction[] {
   return txs.filter((tx) => {
@@ -85,85 +86,92 @@ export default function RoomClient({ code }: { code: string }) {
     <main className="flex flex-1 flex-col">
       <div className="flex-1 max-w-2xl w-full mx-auto p-3 flex flex-col gap-3">
         {/* Top bar */}
-        <header className="flex items-center justify-between gap-2 border rounded-lg p-3 bg-card">
-          <div className="flex flex-col">
-            <span className="text-xs uppercase tracking-wide text-muted-foreground">
+        <header className="flex items-center justify-between gap-2 border rounded-xl px-3 py-2 bg-card">
+          <Link
+            href="/"
+            className="flex flex-col leading-tight"
+            aria-label="Go to home"
+          >
+            <span
+              className="text-sm font-bold tracking-tight"
+              style={{ fontFamily: "var(--font-serif)" }}
+            >
+              Auto<span className="text-[var(--mono-green)]">bank</span>
+            </span>
+            <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+              {room.mode}
+            </span>
+          </Link>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
               Room
             </span>
-            <div className="flex items-center gap-2">
-              <span className="font-mono text-xl font-semibold tracking-widest">
-                {room.code}
-              </span>
-              <Button
-                size="icon-sm"
-                variant="ghost"
-                onClick={copyCode}
-                aria-label="Copy room code"
-              >
-                {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
-              </Button>
-            </div>
-          </div>
-          <div className="text-right">
-            <div className="text-xs uppercase tracking-wide text-muted-foreground">
-              Mode
-            </div>
-            <div className="text-sm capitalize">{room.mode}</div>
+            <span className="font-mono text-lg font-bold tracking-[0.2em] px-2 py-0.5 rounded-md bg-muted">
+              {room.code}
+            </span>
+            <Button
+              size="icon-sm"
+              variant="ghost"
+              onClick={copyCode}
+              aria-label="Copy room code"
+            >
+              {copied ? <Check className="size-4 text-[var(--mono-green)]" /> : <Copy className="size-4" />}
+            </Button>
           </div>
         </header>
 
-        {/* Wallet */}
+        {/* Wallet (hero) */}
         <Wallet player={me} />
 
-        {/* Pending */}
-        {pending.length > 0 && (
-          <section className="flex flex-col gap-2">
-            <h2 className="font-medium">
-              Pending ({pending.length})
-            </h2>
-            {pending.map((tx) => (
-              <PendingTransaction key={tx.id} room={room} you={you} tx={tx} />
-            ))}
-          </section>
-        )}
+        {/* Pending — high priority */}
+        <AnimatePresence initial={false}>
+          {pending.length > 0 && (
+            <motion.section
+              key="pending"
+              layout
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.25 }}
+              className="flex flex-col gap-2"
+            >
+              <h2 className="font-semibold text-sm flex items-center gap-2">
+                Pending action
+                <span className="text-[10px] uppercase tracking-wide text-accent-foreground/80 px-1.5 py-0.5 rounded-full bg-accent/20">
+                  {pending.length}
+                </span>
+              </h2>
+              <AnimatePresence initial={false}>
+                {pending.map((tx) => (
+                  <PendingTransaction key={tx.id} room={room} you={you} tx={tx} />
+                ))}
+              </AnimatePresence>
+            </motion.section>
+          )}
+        </AnimatePresence>
 
         {/* Other players */}
-        <section className="border rounded-lg p-3 bg-card">
-          <h2 className="font-medium mb-2">Players ({room.players.length})</h2>
+        <section className="border rounded-xl p-3 bg-card flex flex-col gap-2">
+          <header className="flex items-baseline justify-between">
+            <h2 className="font-semibold text-sm">Players</h2>
+            <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+              {room.players.length} total
+            </span>
+          </header>
           {others.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-muted-foreground italic">
               No other players have joined yet. Share code{" "}
-              <span className="font-mono font-semibold">{room.code}</span>.
+              <span className="font-mono font-semibold tracking-widest">
+                {room.code}
+              </span>
+              .
             </p>
           ) : (
-            <ul className="flex flex-col gap-1.5">
+            <div className="flex gap-2 overflow-x-auto -mx-1 px-1 pb-1">
               {others.map((p) => (
-                <li
-                  key={p.id}
-                  className="flex items-center justify-between text-sm border rounded px-2 py-1.5"
-                >
-                  <span className="flex items-center gap-2 min-w-0">
-                    <span
-                      className="inline-block size-3 rounded-full border shrink-0"
-                      style={{ background: p.color }}
-                      aria-hidden
-                    />
-                    <span className="truncate">{p.name}</span>
-                    {p.isAdmin && (
-                      <span className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
-                        admin
-                      </span>
-                    )}
-                  </span>
-                  <span className="flex items-center gap-2 text-xs text-muted-foreground shrink-0">
-                    <span>{p.assets.length} assets</span>
-                    <span className="tabular-nums font-medium text-foreground">
-                      {formatMoney(p.cash)}
-                    </span>
-                  </span>
-                </li>
+                <PlayerChip key={p.id} player={p} />
               ))}
-            </ul>
+            </div>
           )}
         </section>
 
@@ -173,5 +181,34 @@ export default function RoomClient({ code }: { code: string }) {
 
       <ActionBar room={room} you={me} />
     </main>
+  );
+}
+
+function PlayerChip({ player }: { player: Player }) {
+  return (
+    <div className="shrink-0 min-w-[140px] flex flex-col gap-1.5 border rounded-xl px-3 py-2 bg-background">
+      <div className="flex items-center gap-1.5 min-w-0">
+        <span
+          className="inline-block size-2.5 rounded-full border border-black/30 shrink-0"
+          style={{ background: player.color }}
+          aria-hidden
+        />
+        <span className="truncate text-sm font-medium">{player.name}</span>
+        {player.isAdmin && (
+          <span className="text-[9px] uppercase tracking-wide px-1 py-0.5 rounded bg-muted text-muted-foreground shrink-0">
+            admin
+          </span>
+        )}
+      </div>
+      <div className="flex items-baseline justify-between gap-2">
+        <BalanceTicker
+          value={player.cash}
+          className="text-base font-semibold"
+        />
+        <span className="text-[10px] text-muted-foreground tabular-nums">
+          {player.assets.length} {player.assets.length === 1 ? "deed" : "deeds"}
+        </span>
+      </div>
+    </div>
   );
 }
