@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -66,16 +66,22 @@ export function TransferSheet({
     [room.players, you.id],
   );
 
-  // Reset when re-opening or kind changes.
+  // Reset only on the leading edge of `open` going false → true (or when kind changes).
+  // Depending on `others` would re-fire every SSE update and clobber user input.
+  const wasOpen = useRef(false);
+  const initialRecipientRef = useRef<string>("");
+  initialRecipientRef.current = kind === "p2p" ? others[0]?.id ?? "" : "";
   useEffect(() => {
-    if (!open) return;
-    setReason("other");
-    setAmount("");
-    setRecipientId(kind === "p2p" ? others[0]?.id ?? "" : "");
-    setPropertyId("");
-    setNote("");
-    setSubmitting(false);
-  }, [open, kind, others]);
+    if (open && !wasOpen.current) {
+      setReason("other");
+      setAmount("");
+      setRecipientId(initialRecipientRef.current);
+      setPropertyId("");
+      setNote("");
+      setSubmitting(false);
+    }
+    wasOpen.current = open;
+  }, [open, kind]);
 
   function pickReason(r: ReasonPreset) {
     setReason(r);
@@ -121,8 +127,8 @@ export function TransferSheet({
     try {
       await api.propose(room.code, {
         kind,
-        reason,
-        reasonNote: reason === "other" && note.trim() ? note.trim() : undefined,
+        reason: kind === "p2p" ? "other" : reason,
+        reasonNote: note.trim() || undefined,
         cash,
         assets,
       });
@@ -140,7 +146,7 @@ export function TransferSheet({
 
   return (
     <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
-      <SheetContent side="bottom" className="h-[90vh] overflow-y-auto">
+      <SheetContent side="bottom" className="h-auto max-h-[90vh] sm:max-w-lg sm:mx-auto sm:rounded-t-2xl overflow-y-auto">
         <SheetHeader>
           <SheetTitle>{titleOf(kind)}</SheetTitle>
           <SheetDescription>
@@ -151,22 +157,24 @@ export function TransferSheet({
         </SheetHeader>
 
         <div className="flex flex-col gap-4 px-4 pb-4">
-          <div className="flex flex-col gap-2">
-            <Label>Reason</Label>
-            <div className="grid grid-cols-3 gap-2">
-              {ALL_REASONS.map((r) => (
-                <Button
-                  key={r}
-                  type="button"
-                  size="sm"
-                  variant={reason === r ? "default" : "outline"}
-                  onClick={() => pickReason(r)}
-                >
-                  {REASON_LABELS[r].label}
-                </Button>
-              ))}
+          {kind !== "p2p" && (
+            <div className="flex flex-col gap-2">
+              <Label>Reason</Label>
+              <div className="grid grid-cols-3 gap-2">
+                {ALL_REASONS.map((r) => (
+                  <Button
+                    key={r}
+                    type="button"
+                    size="sm"
+                    variant={reason === r ? "default" : "outline"}
+                    onClick={() => pickReason(r)}
+                  >
+                    {REASON_LABELS[r].label}
+                  </Button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="flex flex-col gap-2">
             <Label htmlFor="amount">Amount</Label>
@@ -224,14 +232,14 @@ export function TransferSheet({
             </div>
           )}
 
-          {reason === "other" && (
+          {(reason === "other" || kind === "p2p") && (
             <div className="flex flex-col gap-2">
-              <Label htmlFor="note">Note (optional)</Label>
+              <Label htmlFor="note">{kind === "p2p" ? "What for? (optional)" : "Note (optional)"}</Label>
               <Input
                 id="note"
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
-                placeholder="e.g. side bet"
+                placeholder={kind === "p2p" ? "rent, side bet, lost a bet…" : "e.g. side bet"}
                 maxLength={120}
               />
             </div>
