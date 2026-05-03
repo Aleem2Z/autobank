@@ -12,6 +12,11 @@ export interface BalanceTickerProps {
   durationMs?: number;
   /** Optional override for the "+$X / -$X" delta floater. */
   showDelta?: boolean;
+  /**
+   * If true, renders the leading "$" as a smaller, baseline-shifted chip
+   * for premium-card display ("$1,500" style with offset $). Default false.
+   */
+  showCurrencyChip?: boolean;
 }
 
 interface DeltaToast {
@@ -26,6 +31,7 @@ export function BalanceTicker({
   className,
   durationMs = 700,
   showDelta = true,
+  showCurrencyChip = false,
 }: BalanceTickerProps) {
   const motionValue = useMotionValue(value);
   const [display, setDisplay] = useState(value);
@@ -74,9 +80,24 @@ export function BalanceTicker({
     return () => controls.stop();
   }, [value, motionValue, durationMs, showDelta]);
 
+  const formatted = formatMoney(display);
+  // formatMoney always returns either "$1,234" or "-$1,234"; split out the
+  // sign + currency from the digits so we can present the "$" in a stylized
+  // chip when requested.
+  const negative = formatted.startsWith("-");
+  const digits = negative ? formatted.slice(2) : formatted.slice(1);
+
   return (
     <span className={cn("relative inline-flex items-baseline tabular-nums", className)}>
-      <span aria-live="polite">{formatMoney(display)}</span>
+      {showCurrencyChip ? (
+        <span aria-live="polite">
+          {negative && <span>−</span>}
+          <span className="balance-currency">$</span>
+          {digits}
+        </span>
+      ) : (
+        <span aria-live="polite">{formatted}</span>
+      )}
       <AnimatePresence>
         {deltas.map((d) => {
           const positive = d.delta >= 0;

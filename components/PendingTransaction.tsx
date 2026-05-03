@@ -20,26 +20,39 @@ function summarize(room: Room, tx: Transaction): React.ReactNode {
   const reason = REASON_LABELS[tx.reason]?.label ?? tx.reason;
 
   if (tx.kind === "split") {
+    const total = tx.splitChildren?.reduce((s, c) => s + c.amount, 0) ?? 0;
     return (
-      <div className="text-sm flex flex-col gap-0.5">
-        <div>
-          <span className="font-medium">{nameOf(room, tx.proposedBy)}</span>{" "}
-          splits to:
+      <div className="flex flex-col gap-2.5">
+        <div className="flex items-baseline justify-between gap-3">
+          <div
+            className="text-base font-semibold leading-tight"
+            style={{ fontFamily: "var(--font-serif)" }}
+          >
+            <span>{nameOf(room, tx.proposedBy)}</span>
+            <span className="text-muted-foreground font-normal"> splits </span>
+          </div>
+          <span className="text-2xl font-black tracking-tight tabular-nums leading-none">
+            {formatMoney(total)}
+          </span>
         </div>
-        <ul className="ml-4 list-disc">
+        <ul className="text-sm text-muted-foreground flex flex-col gap-0.5">
           {tx.splitChildren?.map((c, i) => (
-            <li key={i}>
-              {nameOf(room, c.toPlayerId)} —{" "}
-              <span className="tabular-nums">{formatMoney(c.amount)}</span>
+            <li key={i} className="flex justify-between">
+              <span>{nameOf(room, c.toPlayerId)}</span>
+              <span className="tabular-nums font-medium text-foreground">
+                {formatMoney(c.amount)}
+              </span>
             </li>
           ))}
         </ul>
-        <div className="text-muted-foreground text-xs mt-1">{reason}</div>
+        <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground/80">
+          {reason}
+          {tx.reasonNote ? ` · ${tx.reasonNote}` : ""}
+        </div>
       </div>
     );
   }
 
-  // Trade (asset-move with assets on both sides) — render explicit two-sided summary
   if (tx.kind === "asset-move") {
     const proposer = nameOf(room, tx.proposedBy);
     const partnerId =
@@ -65,39 +78,50 @@ function summarize(room: Room, tx: Transaction): React.ReactNode {
     );
 
     return (
-      <div className="text-sm flex flex-col gap-1">
-        <div>
-          <span className="font-medium">{proposer}</span>
-          <span className="text-muted-foreground"> ⇄ </span>
-          <span className="font-medium">{partner}</span>
+      <div className="flex flex-col gap-2.5">
+        <div
+          className="text-base font-semibold leading-tight"
+          style={{ fontFamily: "var(--font-serif)" }}
+        >
+          <span>{proposer}</span>
+          <span className="text-muted-foreground font-normal"> ⇄ </span>
+          <span>{partner}</span>
         </div>
-        <div className="grid grid-cols-2 gap-2 text-xs">
-          <div className="flex flex-col gap-0.5">
-            <span className="text-muted-foreground">{proposer} gives</span>
+        <div className="grid grid-cols-2 gap-2 text-[13px]">
+          <div className="flex flex-col gap-0.5 rounded-xl bg-muted/40 px-3 py-2">
+            <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+              {proposer} gives
+            </span>
             {proposerGivesCash > 0 && (
-              <span className="tabular-nums">{formatMoney(proposerGivesCash)}</span>
+              <span className="tabular-nums font-semibold">{formatMoney(proposerGivesCash)}</span>
             )}
             {proposerGivesAssets.map((a) => (
-              <span key={a.defId}>{getAssetDef(a.defId)?.name ?? a.defId}</span>
+              <span key={a.defId} className="text-foreground/80">
+                {getAssetDef(a.defId)?.name ?? a.defId}
+              </span>
             ))}
             {proposerGivesCash === 0 && proposerGivesAssets.length === 0 && (
               <span className="italic text-muted-foreground">nothing</span>
             )}
           </div>
-          <div className="flex flex-col gap-0.5">
-            <span className="text-muted-foreground">{partner} gives</span>
+          <div className="flex flex-col gap-0.5 rounded-xl bg-muted/40 px-3 py-2">
+            <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+              {partner} gives
+            </span>
             {partnerGivesCash > 0 && (
-              <span className="tabular-nums">{formatMoney(partnerGivesCash)}</span>
+              <span className="tabular-nums font-semibold">{formatMoney(partnerGivesCash)}</span>
             )}
             {partnerGivesAssets.map((a) => (
-              <span key={a.defId}>{getAssetDef(a.defId)?.name ?? a.defId}</span>
+              <span key={a.defId} className="text-foreground/80">
+                {getAssetDef(a.defId)?.name ?? a.defId}
+              </span>
             ))}
             {partnerGivesCash === 0 && partnerGivesAssets.length === 0 && (
               <span className="italic text-muted-foreground">nothing</span>
             )}
           </div>
         </div>
-        <div className="text-muted-foreground text-xs">
+        <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground/80">
           {reason}
           {tx.reasonNote ? ` · ${tx.reasonNote}` : ""}
         </div>
@@ -108,23 +132,32 @@ function summarize(room: Room, tx: Transaction): React.ReactNode {
   const cash = tx.cash?.[0];
   const asset = tx.assets?.[0];
   return (
-    <div className="text-sm flex flex-col gap-0.5">
+    <div className="flex flex-col gap-2">
       {cash && (
-        <div>
-          <span className="font-medium">{nameOf(room, cash.fromPlayerId)}</span>
-          <span className="text-muted-foreground"> → </span>
-          <span className="font-medium">{nameOf(room, cash.toPlayerId)}</span>
-          <span className="ml-2 tabular-nums">{formatMoney(cash.amount)}</span>
+        <div className="flex items-baseline justify-between gap-3">
+          <div
+            className="text-base font-semibold leading-tight min-w-0"
+            style={{ fontFamily: "var(--font-serif)" }}
+          >
+            <span>{nameOf(room, cash.fromPlayerId)}</span>
+            <span className="text-muted-foreground font-normal"> → </span>
+            <span>{nameOf(room, cash.toPlayerId)}</span>
+          </div>
+          <span className="text-2xl font-black tracking-tight tabular-nums leading-none shrink-0">
+            {formatMoney(cash.amount)}
+          </span>
         </div>
       )}
       {asset && (
-        <div className="text-xs text-muted-foreground">
-          asset: {getAssetDef(asset.defId)?.name ?? asset.defId}
-          {" — "}
-          {nameOf(room, asset.fromPlayerId)} → {nameOf(room, asset.toPlayerId)}
+        <div className="text-[12px] text-muted-foreground">
+          {getAssetDef(asset.defId)?.name ?? asset.defId}
+          <span className="opacity-60">
+            {" "}
+            · {nameOf(room, asset.fromPlayerId)} → {nameOf(room, asset.toPlayerId)}
+          </span>
         </div>
       )}
-      <div className="text-muted-foreground text-xs">
+      <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground/80">
         {reason}
         {tx.reasonNote ? ` · ${tx.reasonNote}` : ""}
       </div>
@@ -186,77 +219,86 @@ export function PendingTransaction({
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, y: -10, scale: 0.97 }}
+      initial={{ opacity: 0, y: -12, scale: 0.96 }}
       animate={{
         opacity: 1,
         y: 0,
-        scale: [1, 1.02, 1],
+        scale: [1, 1.015, 1],
       }}
       transition={{
-        opacity: { duration: 0.25 },
-        y: { duration: 0.25 },
-        scale: { duration: 0.5, times: [0, 0.5, 1] },
+        opacity: { duration: 0.2 },
+        y: { type: "spring", stiffness: 300, damping: 25 },
+        scale: { duration: 0.55, times: [0, 0.55, 1] },
       }}
       className={cn(
-        "border rounded-xl p-3 bg-card flex flex-col gap-2 relative overflow-hidden",
-        "shadow-[0_1px_0_rgba(0,0,0,0.04),0_4px_18px_-8px_rgba(0,0,0,0.18)]",
+        "border border-border/60 rounded-2xl bg-card flex flex-col relative overflow-hidden",
+        "shadow-[0_2px_0_rgba(0,0,0,0.04),0_18px_36px_-22px_rgba(20,80,50,0.30)]",
       )}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">{summarize(room, tx)}</div>
+      <div className="flex items-start justify-between gap-3 p-4 pb-3">
+        <div className="min-w-0 flex-1">{summarize(room, tx)}</div>
         {isRequestBank && tx.objectionDeadline && (
-          <div className="text-[11px] tabular-nums shrink-0 text-muted-foreground text-right">
-            <div className="font-medium text-foreground">{remainingSec}s</div>
-            <div>auto-confirms</div>
+          <div className="text-right shrink-0">
+            <div
+              className="text-2xl font-black tabular-nums leading-none"
+              style={{ color: barColor }}
+            >
+              {remainingSec}
+              <span className="text-xs font-bold align-baseline ml-0.5">s</span>
+            </div>
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5">
+              auto-confirms
+            </div>
           </div>
         )}
       </div>
 
-      {isRequestBank && tx.objectionDeadline && (
-        <div className="h-1.5 rounded-full bg-muted overflow-hidden" aria-hidden>
-          <motion.div
-            initial={false}
-            animate={{ width: `${fraction * 100}%` }}
-            transition={{ ease: "linear", duration: 0.1 }}
-            style={{ background: barColor }}
-            className="h-full rounded-full"
-          />
-        </div>
-      )}
-
-      <div className="flex gap-2">
+      <div className="flex gap-2 px-4 pb-4">
         {isRequestBank ? (
           <Button
-            size="sm"
+            size="lg"
             variant="destructive"
             disabled={busy !== null}
             onClick={() => decide("object")}
-            className="flex-1"
+            className="flex-1 h-11 rounded-xl text-sm font-semibold"
           >
             Object
           </Button>
         ) : (
           <>
             <Button
-              size="sm"
+              size="lg"
               variant="destructive"
               disabled={busy !== null}
               onClick={() => decide("reject")}
-              className="flex-1"
+              className="flex-1 h-11 rounded-xl text-sm font-semibold"
             >
               Reject
             </Button>
             <Button
-              size="sm"
+              size="lg"
               disabled={busy !== null || !canConfirm}
               onClick={() => decide("confirm")}
-              className="flex-1"
+              className="flex-1 h-11 rounded-xl text-sm font-semibold"
             >
               Confirm
             </Button>
           </>
         )}
       </div>
+
+      {/* Full-card-width countdown bar */}
+      {isRequestBank && tx.objectionDeadline && (
+        <div className="h-1 bg-muted/60" aria-hidden>
+          <motion.div
+            initial={false}
+            animate={{ width: `${fraction * 100}%` }}
+            transition={{ ease: "linear", duration: 0.1 }}
+            style={{ background: barColor }}
+            className="h-full"
+          />
+        </div>
+      )}
     </motion.div>
   );
 }

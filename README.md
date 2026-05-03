@@ -20,6 +20,8 @@ A multiplayer wallet for tabletop Monopoly that replaces the human banker. Frien
 - Calculate or auto-collect rent (you tap "Pay Player" and pick the amount)
 - Enforce house rules — they all just work because the app is a neutral ledger
 
+**Design language:** Modern fintech aesthetic (à la SadaPay) with a Monopoly twist — Monopoly-green primary on a board-cream background, serif display type, bold tabular numerals, premium debit-card-style wallet, generous whitespace, and confident micro-interactions on tap.
+
 ## Stack
 
 Next.js 16 (App Router · Turbopack) · React 19 · TypeScript · Tailwind v4 · shadcn/ui · Server-Sent Events for live sync · in-memory store for solo dev with a Redis adapter (`ioredis`) for multi-instance / production · Vitest.

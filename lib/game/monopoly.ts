@@ -87,4 +87,19 @@ export const PLAYER_COLORS = [
   "#ec4899", // pink
   "#0891b2", // cyan
   "#71717a", // gray
-];
+] as const;
+
+const PLAYER_COLOR_SET = new Set<string>(
+  PLAYER_COLORS.map((c) => c.toLowerCase()),
+);
+
+/**
+ * True iff `value` is a valid 6-digit hex color *and* belongs to the
+ * canonical PLAYER_COLORS palette. Comparison is case-insensitive so
+ * `"#DC2626"` and `"#dc2626"` both pass.
+ */
+export function isValidPlayerColor(value: string): boolean {
+  if (typeof value !== "string") return false;
+  if (!/^#[0-9a-fA-F]{6}$/.test(value)) return false;
+  return PLAYER_COLOR_SET.has(value.toLowerCase());
+}

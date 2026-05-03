@@ -4,13 +4,17 @@ import { nanoid } from "nanoid";
 import { store } from "@/lib/store";
 import { isValidCode } from "@/lib/game/codes";
 import { hashPasscode, setSessionCookie } from "@/lib/session";
-import { PLAYER_COLORS } from "@/lib/game/monopoly";
+import { PLAYER_COLORS, isValidPlayerColor } from "@/lib/game/monopoly";
 
 export const runtime = "nodejs";
 
 const JoinBody = z.object({
   passcode: z.string().min(1),
   name: z.string().min(1).max(40),
+  color: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}$/)
+    .optional(),
 });
 
 export async function POST(req: NextRequest, ctx: { params: Promise<{ code: string }> }) {
@@ -31,10 +35,34 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ code: stri
   }
 
   const playerId = nanoid(8);
-  const usedColors = new Set(room.players.map((p) => p.color));
-  const color =
-    PLAYER_COLORS.find((c) => !usedColors.has(c)) ??
-    PLAYER_COLORS[room.players.length % PLAYER_COLORS.length];
+  const usedColors = new Set(
+    room.players.map((p) => p.color.toLowerCase()),
+  );
+
+  // If client requested a color, validate it: must be a known palette member
+  // and not already taken in this room. Otherwise auto-assign the next
+  // available palette color.
+  let color: string;
+  const requested = body.data.color?.toLowerCase();
+  if (requested) {
+    if (!isValidPlayerColor(requested)) {
+      return NextResponse.json(
+        { error: "That color isn't part of the palette." },
+        { status: 400 },
+      );
+    }
+    if (usedColors.has(requested)) {
+      return NextResponse.json(
+        { error: "Another player already grabbed that color." },
+        { status: 409 },
+      );
+    }
+    color = requested;
+  } else {
+    color =
+      PLAYER_COLORS.find((c) => !usedColors.has(c.toLowerCase())) ??
+      PLAYER_COLORS[room.players.length % PLAYER_COLORS.length];
+  }
 
   room.players.push({
     id: playerId,

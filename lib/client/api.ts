@@ -48,6 +48,8 @@ export interface CreateRoomInput {
 export interface JoinRoomInput {
   passcode: string;
   name: string;
+  /** Optional hex color from `PLAYER_COLORS`. Server falls back to auto-assignment. */
+  color?: string;
 }
 
 export interface ProposeInput {
