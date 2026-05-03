@@ -56,21 +56,16 @@ const BILL_H = 92;
 const PORTRAIT_W = BILL_H; // 92
 const PORTRAIT_H = BILL_W; // 188
 
-const TOTAL_ANGLE = 100; // 7 bills × ~16° step
+const MAX_VISIBLE = 5;
+const TOTAL_ANGLE = 100; // 5 bills × 25° step — clean hand-of-cards fan
 
 /**
- * Hand of Monopoly notes. One position per unique denomination, but each
- * position is rendered as a STACK (MoneyBill `count` prop) sized to the
- * actual count of that denomination — so 2× $500 looks like two $500
- * notes thick in the fan, conveying that you have multiple of them
- * without filling the fan with overlapping individual bills (which made
- * the fan look like a closed disc).
- *
- * For $1500 starting balance you see 7 fanned stacks: $500×2, $100×2,
- * $50×3, $20×4, $10×4, $5×4 (capped from 5), $1×4 (capped from 5).
+ * Hand of Monopoly notes — one bill per unique denomination present,
+ * capped at 5 to keep the fan readable. The fan is a *visual indicator*
+ * of which denominations the player holds, not a literal count of bills.
  */
 export function BillFan({ cash }: { cash: number }) {
-  const bills = useMemo(() => breakdown(cash), [cash]);
+  const bills = useMemo(() => breakdown(cash).slice(0, MAX_VISIBLE), [cash]);
 
   if (bills.length === 0) {
     return (
@@ -90,7 +85,7 @@ export function BillFan({ cash }: { cash: number }) {
   return (
     <div
       className="relative w-full h-full"
-      aria-label={`Notes in hand summing to $${cash.toLocaleString()}: ${bills.map((b) => `${b.count}× $${b.denom}`).join(", ")}`}
+      aria-label={`Notes in hand: ${bills.map((b) => `$${b.denom}`).join(", ")}`}
       role="img"
     >
       <AnimatePresence initial={false}>
@@ -98,10 +93,6 @@ export function BillFan({ cash }: { cash: number }) {
           const rot = startAngle + step * idx;
           // Largest at z=0 (back), smallest in front, on top.
           const z = idx;
-          // MoneyBill stacks 1-4 bills with a 3px offset per layer; cap
-          // here so really common low-denoms (e.g. 5× $1) don't visually
-          // overpower the rare high-denoms.
-          const stack = Math.min(4, b.count) as 1 | 2 | 3 | 4;
           return (
             <motion.div
               key={b.denom}
@@ -137,11 +128,7 @@ export function BillFan({ cash }: { cash: number }) {
                   transformOrigin: "center center",
                 }}
               >
-                <MoneyBill
-                  denomination={b.denom}
-                  count={stack}
-                  size="md"
-                />
+                <MoneyBill denomination={b.denom} count={1} size="md" />
               </div>
             </motion.div>
           );
