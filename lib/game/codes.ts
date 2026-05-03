@@ -1,3 +1,5 @@
+import crypto from "node:crypto";
+
 // Crockford-style alphabet — uppercase letters and digits with the
 // look-alike characters (I, O, 0, 1) stripped so a code can be read aloud
 // at the table without confusion. 32 symbols × 8 positions = ~1.1T codes,
@@ -9,7 +11,7 @@ const CODE_LENGTH = 8;
 export function generateRoomCode(): string {
   let s = "";
   for (let i = 0; i < CODE_LENGTH; i++) {
-    s += ALPHA[Math.floor(Math.random() * ALPHA.length)];
+    s += ALPHA[crypto.randomInt(ALPHA.length)];
   }
   return s;
 }

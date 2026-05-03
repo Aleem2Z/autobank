@@ -2,10 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { nanoid } from "nanoid";
 import { store } from "@/lib/store";
+import { withCodeLock } from "@/lib/store/locks";
 import { isValidCode } from "@/lib/game/codes";
 import { getSession } from "@/lib/session";
-import { validateProposal, applyTransaction } from "@/lib/game/rules";
+import {
+  applyTransaction,
+  authorizeActor,
+  validateProposal,
+} from "@/lib/game/rules";
 import { sweepExpired } from "@/lib/game/sweep";
+import { publicRoom } from "@/lib/game/serialize";
 import type { Transaction, TxKind, ReasonPreset } from "@/lib/game/types";
 
 export const runtime = "nodejs";
@@ -23,14 +29,20 @@ const Asset = z.object({
   mortgaged: z.boolean().optional(),
 });
 
-const SplitChild = z.object({ toPlayerId: z.string(), amount: z.number().int().positive() });
+const SplitChild = z.object({
+  toPlayerId: z.string(),
+  amount: z.number().int().positive(),
+});
 
 const Body = z.object({
+  /** Optional client idempotency key — retrying with the same key returns
+   *  the original tx instead of double-applying the deduction. */
+  clientTxId: z.string().min(8).max(64).optional(),
   kind: z.enum(["p2p", "pay-bank", "request-bank", "asset-move", "split"]),
   reason: z.enum([
-    "pass-go", "income-tax", "luxury-tax", "chance", "community-chest", "jail-fine",
-    "buy-property", "mortgage", "unmortgage", "build", "sell-building", "rent",
-    "gift", "loan", "other",
+    "pass-go", "income-tax", "luxury-tax", "chance", "community-chest",
+    "jail-fine", "buy-property", "mortgage", "unmortgage", "build",
+    "sell-building", "rent", "gift", "loan", "other",
   ]),
   reasonNote: z.string().max(120).optional(),
   cash: z.array(Cash).optional(),
@@ -38,109 +50,138 @@ const Body = z.object({
   splitChildren: z.array(SplitChild).max(3).optional(),
 });
 
-export async function POST(req: NextRequest, ctx: { params: Promise<{ code: string }> }) {
+export async function POST(
+  req: NextRequest,
+  ctx: { params: Promise<{ code: string }> },
+) {
   const { code } = await ctx.params;
-  if (!isValidCode(code)) return NextResponse.json({ error: "Bad code" }, { status: 400 });
+  if (!isValidCode(code))
+    return NextResponse.json({ error: "Bad code" }, { status: 400 });
 
   const session = await getSession();
   if (!session || session.roomCode !== code) {
     return NextResponse.json({ error: "Forbidden" }, { status: 401 });
   }
 
-  let room = await store.getRoom(code);
-  if (!room) return NextResponse.json({ error: "Not found" }, { status: 404 });
-
-  // Sweep expired request-bank txs first so a stale one doesn't conflict
-  const swept = sweepExpired(room);
-  if (swept.promoted.length) {
-    room = swept.room;
-    await store.saveRoom(room);
-    await store.publish(code, { type: "state", room });
-  }
-
   const parsed = Body.safeParse(await req.json());
-  if (!parsed.success) return NextResponse.json({ error: parsed.error.message }, { status: 400 });
+  if (!parsed.success)
+    return NextResponse.json({ error: parsed.error.message }, { status: 400 });
 
-  const requires = computeConfirmers(
-    parsed.data,
-    session.playerId,
-    room.players.map((p) => p.id),
-  );
+  const result = await withCodeLock(code, async () => {
+    let room = await store.getRoom(code);
+    if (!room) return { status: 404, body: { error: "Not found" } };
 
-  // Pay-bank with an asset transfer (e.g. buying a property) gets a 10s
-  // objection window like request-bank — anyone can object if they
-  // think the buyer is grabbing a property someone else was about to take.
-  // Plain pay-bank (just cash) auto-confirms.
-  const isBuyFromBank =
-    parsed.data.kind === "pay-bank" && (parsed.data.assets?.length ?? 0) > 0;
-  const usesObjectionWindow =
-    parsed.data.kind === "request-bank" || isBuyFromBank;
+    // Lazy sweep: any expired objection-window txs get resolved before we
+    // read state for this propose.
+    const swept = sweepExpired(room);
+    if (swept.promoted.length || swept.rejected.length) {
+      room = swept.room;
+    }
 
-  const tx: Transaction = {
-    id: nanoid(10),
-    kind: parsed.data.kind as TxKind,
-    reason: parsed.data.reason as ReasonPreset,
-    reasonNote: parsed.data.reasonNote,
-    cash: parsed.data.cash,
-    assets: parsed.data.assets,
-    splitChildren: parsed.data.splitChildren,
-    proposedBy: session.playerId,
-    proposedAt: Date.now(),
-    requiresConfirmFrom: requires,
-    confirmedBy: [],
-    status: "pending",
-    objectionDeadline: usesObjectionWindow ? Date.now() + 10_000 : undefined,
-  };
+    // Idempotency: if this clientTxId already produced a tx, return that one.
+    if (parsed.data.clientTxId) {
+      const dup = room.transactions.find(
+        (t) => t.clientTxId === parsed.data.clientTxId,
+      );
+      if (dup) {
+        if (swept.promoted.length || swept.rejected.length) {
+          await store.saveRoom(bumpVersion(room));
+          await store.publish(code, { type: "state", room: publicRoom(room) });
+        }
+        return { status: 200, body: { tx: dup } };
+      }
+    }
 
-  const err = validateProposal(room, tx);
-  if (err) return NextResponse.json({ error: err }, { status: 400 });
+    const isBuyFromBank =
+      parsed.data.kind === "pay-bank" && (parsed.data.assets?.length ?? 0) > 0;
+    const usesObjectionWindow =
+      parsed.data.kind === "request-bank" || isBuyFromBank;
 
-  if (requires.length === 0 && !usesObjectionWindow) {
-    tx.status = "confirmed";
-    const next = applyTransaction(room, tx);
-    next.transactions = [...next.transactions, tx];
-    await store.saveRoom(next);
-    await store.publish(code, { type: "state", room: next });
-  } else {
-    room.transactions = [...room.transactions, tx];
-    await store.saveRoom(room);
-    await store.publish(code, { type: "state", room });
-  }
+    const requires = computeConfirmers(
+      parsed.data,
+      session.playerId,
+    );
 
-  return NextResponse.json({ tx });
+    const tx: Transaction = {
+      id: nanoid(16),
+      clientTxId: parsed.data.clientTxId,
+      kind: parsed.data.kind as TxKind,
+      reason: parsed.data.reason as ReasonPreset,
+      reasonNote: parsed.data.reasonNote,
+      cash: parsed.data.cash,
+      assets: parsed.data.assets,
+      splitChildren: parsed.data.splitChildren,
+      proposedBy: session.playerId,
+      proposedAt: Date.now(),
+      requiresConfirmFrom: requires,
+      confirmedBy: [],
+      objections: usesObjectionWindow ? [] : undefined,
+      status: "pending",
+      objectionDeadline: usesObjectionWindow ? Date.now() + 10_000 : undefined,
+    };
+
+    // Authorization: actor binding — server-derived actor must match the
+    // structural role of the tx. Catches "debit a victim" cheats.
+    const authError = authorizeActor(tx, session.playerId);
+    if (authError) return { status: 400, body: { error: authError } };
+
+    // Data validation: solvency, ownership, def existence, mode rules.
+    const dataError = validateProposal(room, tx);
+    if (dataError) return { status: 400, body: { error: dataError } };
+
+    let nextRoom = room;
+    if (requires.length === 0 && !usesObjectionWindow) {
+      const confirmed = { ...tx, status: "confirmed" as const };
+      nextRoom = applyTransaction(room, confirmed);
+      nextRoom = {
+        ...nextRoom,
+        transactions: [...nextRoom.transactions, confirmed],
+      };
+      await store.saveRoom(bumpVersion(nextRoom));
+      await store.publish(code, { type: "state", room: publicRoom(nextRoom) });
+      return { status: 200, body: { tx: confirmed } };
+    }
+
+    nextRoom = {
+      ...room,
+      transactions: [...room.transactions, tx],
+    };
+    await store.saveRoom(bumpVersion(nextRoom));
+    await store.publish(code, { type: "state", room: publicRoom(nextRoom) });
+    return { status: 200, body: { tx } };
+  });
+
+  return NextResponse.json(result.body, { status: result.status });
 }
 
+function bumpVersion<T extends { version?: number }>(room: T): T {
+  return { ...room, version: (room.version ?? 0) + 1 };
+}
+
+/**
+ * Decides who must confirm before the tx can apply. Asset-move (trade)
+ * is the only kind that needs counterparty confirmation; everything else
+ * either auto-applies (you're moving your own money) or uses an objection
+ * window (request-bank, buy-property — credibly visible to the table).
+ */
 function computeConfirmers(
   body: z.infer<typeof Body>,
   proposer: string,
-  allPlayerIds: string[],
 ): string[] {
   const set = new Set<string>();
-
-  // P2P and Split: NO confirmation. You're giving away your own money,
-  // there's nothing to cheat (the recipient can only gain). Auto-applies.
-  // Plain Pay Bank: same — no confirmation. Auto-applies.
-
   if (body.kind === "asset-move") {
-    // Trades: BOTH parties must confirm because both sides are exchanging
-    // things — without dual confirm, anyone could unilaterally take
-    // someone else's property.
     for (const m of body.cash ?? []) {
-      if (m.fromPlayerId !== proposer && m.fromPlayerId !== "bank") set.add(m.fromPlayerId);
-      if (m.toPlayerId !== proposer && m.toPlayerId !== "bank") set.add(m.toPlayerId);
+      if (m.fromPlayerId !== proposer && m.fromPlayerId !== "bank")
+        set.add(m.fromPlayerId);
+      if (m.toPlayerId !== proposer && m.toPlayerId !== "bank")
+        set.add(m.toPlayerId);
     }
     for (const a of body.assets ?? []) {
-      if (a.fromPlayerId !== proposer && a.fromPlayerId !== "bank") set.add(a.fromPlayerId);
-      if (a.toPlayerId !== proposer && a.toPlayerId !== "bank") set.add(a.toPlayerId);
+      if (a.fromPlayerId !== proposer && a.fromPlayerId !== "bank")
+        set.add(a.fromPlayerId);
+      if (a.toPlayerId !== proposer && a.toPlayerId !== "bank")
+        set.add(a.toPlayerId);
     }
-  } else if (body.kind === "request-bank") {
-    // Pull from bank: every other player can OBJECT during the
-    // 10s window. requiresConfirmFrom is empty — confirmation
-    // happens via timeout (sweepExpired) unless someone hits Object.
-    void allPlayerIds;
   }
-  // p2p, pay-bank, split: empty set → auto-applies
-  // (pay-bank with asset is handled separately via the objection window
-  //  in the route — same flow as request-bank, no confirmers list)
   return [...set];
 }

@@ -175,7 +175,10 @@ export function PendingTransaction({
   tx: Transaction;
 }) {
   const [busy, setBusy] = useState<null | "confirm" | "reject">(null);
-  const [now, setNow] = useState(Date.now());
+  // Tick state — initialised in the effect to keep render pure (no
+  // Date.now() in the useState initialiser). The interval below sets it
+  // immediately on mount so there's no visible "0s" flash.
+  const [now, setNow] = useState(0);
 
   // "Objection mode": tx auto-confirms after the window unless someone hits Object.
   // Currently used by request-bank AND pay-bank-with-asset (buy property).
@@ -187,6 +190,10 @@ export function PendingTransaction({
 
   useEffect(() => {
     if (!isRequestBank || !tx.objectionDeadline) return;
+    // The first interval tick lands ~100ms after mount, which is fast
+    // enough that the user never sees the placeholder zero — and
+    // delegating the initial impure read to the interval keeps the
+    // effect body itself a pure subscription.
     const id = setInterval(() => setNow(Date.now()), 100);
     return () => clearInterval(id);
   }, [isRequestBank, tx.objectionDeadline]);

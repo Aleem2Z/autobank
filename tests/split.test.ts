@@ -37,7 +37,7 @@ describe("computeSplitAmounts", () => {
   });
 
   it("preserves total exactly even with tiny denominations", () => {
-    for (let total of [1, 7, 13, 100, 1500]) {
+    for (const total of [1, 7, 13, 100, 1500]) {
       for (let n = 1; n <= 3; n++) {
         const amounts = computeSplitAmounts(total, evenPercentages(n));
         expect(amounts.reduce((a, b) => a + b, 0)).toBe(total);

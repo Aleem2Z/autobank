@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { Volume2, VolumeX } from "lucide-react";
 import {
   isMuted,
@@ -14,23 +14,28 @@ import {
  * module's localStorage handling. Plays a short test "prompt" sound when
  * un-muting so the user gets immediate confirmation it's working.
  */
-export function SoundToggle() {
-  // Hydration-safe: start "unmuted" on the server, sync from storage on mount.
-  const [muted, setMutedState] = useState(false);
+function subscribeMuted(cb: () => void): () => void {
+  if (typeof window === "undefined") return () => {};
+  const onStorage = (e: StorageEvent) => {
+    if (e.key === "autobank-muted") cb();
+  };
+  window.addEventListener("storage", onStorage);
+  return () => window.removeEventListener("storage", onStorage);
+}
 
-  useEffect(() => {
-    setMutedState(isMuted());
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === "autobank-muted") setMutedState(e.newValue === "1");
-    };
-    window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
-  }, []);
+export function SoundToggle() {
+  // useSyncExternalStore is the canonical "synchronise to a non-React
+  // source" hook — pure during render, hydration-safe via the server
+  // snapshot, and avoids the setState-in-effect lint complaint.
+  const muted = useSyncExternalStore(
+    subscribeMuted,
+    () => isMuted(),
+    () => false,
+  );
 
   function toggle() {
     const next = !muted;
     setMuted(next);
-    setMutedState(next);
     if (!next) {
       // User just un-muted — confirm audibly. Their click satisfies the
       // gesture requirement, so unlock if this is the first ever interaction.

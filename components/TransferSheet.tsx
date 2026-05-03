@@ -22,6 +22,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { GROUP_TOKENS, MONOPOLY_US, REASON_LABELS } from "@/lib/game/monopoly";
+import { REQUEST_BANK_ALLOWED_REASONS } from "@/lib/game/rules";
 import type {
   AssetMovement,
   CashMovement,
@@ -39,6 +40,30 @@ const HIDDEN: ReasonPreset[] = ["sell-building", "mortgage", "unmortgage"];
 const ALL_REASONS: ReasonPreset[] = (
   Object.keys(REASON_LABELS) as ReasonPreset[]
 ).filter((r) => !HIDDEN.includes(r));
+
+// Pay-bank scope: only reasons that mean "money flows from a player to the
+// bank". Drops chance/community-chest/pass-go (those are bank→player) and
+// rent/gift/loan (player↔player).
+const PAY_BANK_REASONS: ReasonPreset[] = [
+  "income-tax",
+  "luxury-tax",
+  "jail-fine",
+  "buy-property",
+  "build",
+  "other",
+];
+
+function reasonsForKind(kind: Kind): ReasonPreset[] {
+  if (kind === "request-bank") return REQUEST_BANK_ALLOWED_REASONS;
+  if (kind === "pay-bank") return PAY_BANK_REASONS;
+  return ALL_REASONS;
+}
+
+function defaultReasonForKind(kind: Kind): ReasonPreset {
+  if (kind === "request-bank") return "pass-go";
+  if (kind === "pay-bank") return "income-tax";
+  return "other";
+}
 
 function titleOf(kind: Kind): string {
   switch (kind) {
@@ -86,7 +111,9 @@ export function TransferSheet({
   onClose: () => void;
 }) {
   const [kind, setKind] = useState<Kind>(initialKind);
-  const [reason, setReason] = useState<ReasonPreset>("other");
+  const [reason, setReason] = useState<ReasonPreset>(
+    defaultReasonForKind(initialKind),
+  );
   const [amount, setAmount] = useState<string>("");
   const [recipientId, setRecipientId] = useState<string>("");
   const [propertyId, setPropertyId] = useState<string>("");
@@ -111,27 +138,29 @@ export function TransferSheet({
   }, [room.players, propertyQuery]);
 
   const wasOpen = useRef(false);
-  const initialRecipientRef = useRef<string>("");
-  initialRecipientRef.current =
-    initialKind === "p2p" ? others[0]?.id ?? "" : "";
+  // Compute the initial recipient inside the effect — writing to a ref
+  // during render is a React-19 hook-rule violation and not safe under
+  // concurrent rendering. `others` isn't a dep because we only use it
+  // on the leading edge of open, and reading it then is fine.
   useEffect(() => {
     if (open && !wasOpen.current) {
       setKind(initialKind);
-      setReason("other");
+      setReason(defaultReasonForKind(initialKind));
       setAmount("");
-      setRecipientId(initialRecipientRef.current);
+      setRecipientId(initialKind === "p2p" ? others[0]?.id ?? "" : "");
       setPropertyId("");
       setPropertyQuery("");
       setNote("");
       setSubmitting(false);
     }
     wasOpen.current = open;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initialKind]);
 
   function switchKind(next: Kind) {
     setKind(next);
     // Reset mode-specific state so leftovers from the other mode don't bleed in.
-    setReason("other");
+    setReason(defaultReasonForKind(next));
     setPropertyId("");
     setPropertyQuery("");
     if (next === "p2p") {
@@ -140,6 +169,8 @@ export function TransferSheet({
       setRecipientId("");
     }
   }
+
+  const visibleReasons = reasonsForKind(kind);
 
   const showKindToggle = allowKindToggle && kind !== "request-bank";
 
@@ -267,7 +298,7 @@ export function TransferSheet({
             <div className="flex flex-col gap-2">
               <Label className="text-[13px] font-semibold">Reason</Label>
               <div className="grid grid-cols-3 gap-2">
-                {ALL_REASONS.map((r) => {
+                {visibleReasons.map((r) => {
                   const active = reason === r;
                   return (
                     <button
@@ -286,6 +317,12 @@ export function TransferSheet({
                   );
                 })}
               </div>
+              {kind === "request-bank" && (
+                <p className="text-[11px] text-on-surface-variant px-1">
+                  The bank only pays out for Pass GO, Chance, and Community
+                  Chest. Mortgages and selling buildings have their own flow.
+                </p>
+              )}
             </div>
           )}
 

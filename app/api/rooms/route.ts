@@ -31,6 +31,11 @@ let warnedNoInstancePasscode = false;
 function instancePasscodeOk(supplied: string | undefined): boolean {
   const expected = process.env.INSTANCE_PASSCODE ?? "";
   if (!expected) {
+    if (process.env.NODE_ENV === "production") {
+      // Fail closed in production — silently allowing room creation
+      // would let anyone who can reach the server spin up rooms.
+      return false;
+    }
     if (!warnedNoInstancePasscode) {
       warnedNoInstancePasscode = true;
       console.warn(
@@ -39,9 +44,10 @@ function instancePasscodeOk(supplied: string | undefined): boolean {
     }
     return true;
   }
-  const a = Buffer.from(expected, "utf8");
-  const b = Buffer.from(supplied ?? "", "utf8");
-  if (a.length !== b.length) return false;
+  // Hash both sides to a fixed-length digest before timingSafeEqual so
+  // length doesn't leak via the early-return.
+  const a = crypto.createHash("sha256").update(expected, "utf8").digest();
+  const b = crypto.createHash("sha256").update(supplied ?? "", "utf8").digest();
   return crypto.timingSafeEqual(a, b);
 }
 
@@ -65,7 +71,6 @@ export async function POST(req: NextRequest) {
   // cookie below tells that join request "you may claim admin status".
   const room: Room = {
     code,
-    passcodeHash: "",
     mode: body.data.mode ?? "house",
     preset: "monopoly-us",
     startingBalance: body.data.startingBalance ?? STARTING_BALANCE_DEFAULT,
@@ -79,6 +84,7 @@ export async function POST(req: NextRequest) {
     partnerships: [],
     transactions: [],
     createdAt: Date.now(),
+    version: 1,
   };
 
   await store.saveRoom(room);

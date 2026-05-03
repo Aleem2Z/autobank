@@ -35,12 +35,17 @@ export function InstallButton() {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    // Already running as an installed PWA → don't offer install.
+    // This effect is the textbook "subscribe to platform/UA state on
+    // mount" use of useEffect — a synchronous setState here is required
+    // to surface install eligibility once we can read window/navigator.
+    // The new react-hooks/set-state-in-effect rule flags it; suppress it
+    // for these specific calls.
     const standaloneMql = window.matchMedia?.("(display-mode: standalone)");
     const isIOSStandalone =
       "standalone" in navigator &&
       (navigator as unknown as { standalone?: boolean }).standalone === true;
     if (standaloneMql?.matches || isIOSStandalone) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setPlatform("installed");
       return;
     }

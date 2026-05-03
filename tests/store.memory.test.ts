@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { MemoryStore } from "@/lib/store/memory";
-import type { Room } from "@/lib/game/types";
+import type { Room, RoomEvent } from "@/lib/game/types";
 
 const baseRoom = (code: string): Room => ({
   code,
@@ -37,7 +37,7 @@ describe("MemoryStore", () => {
   it("subscribe receives published events", async () => {
     const r = baseRoom("BBBB");
     await store.saveRoom(r);
-    const events: any[] = [];
+    const events: RoomEvent[] = [];
     const unsub = store.subscribe("BBBB", (e) => events.push(e));
     await store.publish("BBBB", { type: "state", room: r });
     unsub();
@@ -46,7 +46,7 @@ describe("MemoryStore", () => {
 
   it("unsubscribe stops further events", async () => {
     const r = baseRoom("CCCC");
-    const events: any[] = [];
+    const events: RoomEvent[] = [];
     const unsub = store.subscribe("CCCC", (e) => events.push(e));
     await store.publish("CCCC", { type: "state", room: r });
     unsub();

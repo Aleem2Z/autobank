@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ArrowRight, ArrowLeft, ArrowDownUp, ArrowLeftRight, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -42,15 +42,21 @@ export function TradeSheet({
   const [getAssets, setGetAssets] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
-  // Reset on (re)open or partner switch
+  // Reset on the leading edge of `open` going false → true. Using a ref
+  // for the previous-open avoids re-resetting on every parent re-render
+  // (which would otherwise wipe the user's typed cash whenever `others`
+  // gets a new array identity).
+  const wasOpen = useRef(false);
   useEffect(() => {
-    if (!open) return;
-    setPartnerId(others[0]?.id ?? "");
-    setGiveCash("");
-    setGetCash("");
-    setGiveAssets([]);
-    setGetAssets([]);
-    setSubmitting(false);
+    if (open && !wasOpen.current) {
+      setPartnerId(others[0]?.id ?? "");
+      setGiveCash("");
+      setGetCash("");
+      setGiveAssets([]);
+      setGetAssets([]);
+      setSubmitting(false);
+    }
+    wasOpen.current = open;
   }, [open, others]);
 
   const partner = others.find((p) => p.id === partnerId) ?? null;

@@ -77,7 +77,7 @@ function sheetForAction(a: PaymentAction): Sheet {
 }
 
 export default function RoomClient({ code }: { code: string }) {
-  const { room, you, status, error, refresh } = useRoom(code);
+  const { room, you, status, connection, error, refresh } = useRoom(code);
   useNotifications(room, you);
   const [copied, setCopied] = useState(false);
   const [openSheet, setOpenSheet] = useState<Sheet>(null);
@@ -167,6 +167,28 @@ export default function RoomClient({ code }: { code: string }) {
             Autobank
           </h1>
           <div className="flex items-center gap-1">
+            {connection !== "online" && (
+              <span
+                role="status"
+                aria-live="polite"
+                className={cn(
+                  "px-2.5 py-1 rounded-full text-[11px] font-bold tracking-tight inline-flex items-center gap-1.5",
+                  connection === "reconnecting"
+                    ? "bg-sent/15 text-sent"
+                    : "bg-destructive/15 text-destructive",
+                )}
+              >
+                <span
+                  className={cn(
+                    "size-1.5 rounded-full",
+                    connection === "reconnecting"
+                      ? "bg-sent animate-pulse"
+                      : "bg-destructive",
+                  )}
+                />
+                {connection === "reconnecting" ? "Reconnecting…" : "Offline"}
+              </span>
+            )}
             <SoundToggle />
             <button
               type="button"

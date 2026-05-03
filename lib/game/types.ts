@@ -72,6 +72,9 @@ export interface SplitChild {
 
 export interface Transaction {
   id: string;
+  /** Client-supplied idempotency key. If a propose retries with the same
+   *  key, the server returns the original tx instead of creating a duplicate. */
+  clientTxId?: string;
   kind: TxKind;
   reason: ReasonPreset;
   reasonNote?: string;
@@ -84,6 +87,9 @@ export interface Transaction {
   confirmedBy: string[];
   rejectedBy?: string;
   objectionDeadline?: number;
+  /** Player ids who hit "Object" within the window. Auto-confirm sweep
+   *  treats a non-empty list as a forced rejection. */
+  objections?: string[];
   status: TxStatus;
 }
 
@@ -96,7 +102,8 @@ export interface Partnership {
 
 export interface Room {
   code: string;
-  passcodeHash: string;
+  /** Optional on the wire — `publicRoom()` strips it before publish/return. */
+  passcodeHash?: string;
   mode: Mode;
   preset: "monopoly-us";
   startingBalance: number;
@@ -107,6 +114,9 @@ export interface Room {
   partnerships: Partnership[];
   transactions: Transaction[];
   createdAt: number;
+  /** Monotonic version, bumped on every saveRoom — clients use this to
+   *  ignore stale poll responses that arrive after a fresher SSE state. */
+  version?: number;
 }
 
 export type RoomEvent =
