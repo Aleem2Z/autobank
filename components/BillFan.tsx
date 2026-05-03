@@ -49,24 +49,18 @@ function breakdown(cash: number): BillCount[] {
 
 const MAX_VISIBLE = 5;
 
-// Bill image dimensions (md size = 188×92). Half-width is the magic
-// number for `margin-left: -half` so the bill's bottom-CENTER lines up
-// with the parent's left:50% anchor.
+// MoneyBill renders LANDSCAPE (188w × 92h). For the fan to read like
+// the Gemini reference (where bills are portrait and fan around their
+// bottom-center), each bill is wrapped in a PORTRAIT box and pre-rotated
+// 90° inside that box. Text ends up sideways — that's intentional and
+// matches how real fanned cash looks.
 const BILL_W = 188;
-const BILL_HALF = BILL_W / 2;
+const BILL_H = 92;
+const PORTRAIT_W = BILL_H; // 92
+const PORTRAIT_H = BILL_W; // 188
 
-/** Total fan spread in degrees, evenly distributed across visible bills. */
-const TOTAL_ANGLE = 120;
+const TOTAL_ANGLE = 110; // total fan spread in degrees
 
-/**
- * Bills fanned around a single bottom-CENTER pivot — Gemini's geometry.
- * Each bill sits at left:50%, margin-left:-halfWidth, bottom:0, so they
- * all share the exact same anchor point at their bottom-center; rotating
- * each one symmetrically spreads them out like a real hand of cards.
- *
- * Largest denomination at z-index 0 (back of fan) so smaller bills layer
- * on top of it.
- */
 export function BillFan({ cash }: { cash: number }) {
   const bills = useMemo(() => breakdown(cash).slice(0, MAX_VISIBLE), [cash]);
 
@@ -94,9 +88,8 @@ export function BillFan({ cash }: { cash: number }) {
       <AnimatePresence initial={false}>
         {bills.map((b, idx) => {
           const rot = startAngle + step * idx;
-          // Higher idx = on top. Bills are sorted largest-first by
-          // breakdown(), so $500 (idx 0) sits at the back and the
-          // smallest denomination (idx N-1) sits in front, on top.
+          // bills are sorted largest-first; idx 0 (largest) goes to z=0
+          // (back of fan), smallest goes to highest z (front, on top).
           const z = idx;
           return (
             <motion.div
@@ -114,11 +107,27 @@ export function BillFan({ cash }: { cash: number }) {
               className="absolute bottom-0 left-1/2"
               style={{
                 zIndex: z,
-                marginLeft: -BILL_HALF,
+                width: PORTRAIT_W,
+                height: PORTRAIT_H,
+                marginLeft: -PORTRAIT_W / 2,
                 transformOrigin: "bottom center",
               }}
             >
-              <MoneyBill denomination={b.denom} count={1} size="md" />
+              {/* Landscape MoneyBill rotated 90° inside the portrait
+                  wrapper so the bill's long edge runs vertically. */}
+              <div
+                className="absolute"
+                style={{
+                  top: "50%",
+                  left: "50%",
+                  width: BILL_W,
+                  height: BILL_H,
+                  transform: "translate(-50%, -50%) rotate(90deg)",
+                  transformOrigin: "center center",
+                }}
+              >
+                <MoneyBill denomination={b.denom} count={1} size="md" />
+              </div>
             </motion.div>
           );
         })}
