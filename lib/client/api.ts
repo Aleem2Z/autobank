@@ -41,6 +41,8 @@ export interface CreateRoomInput {
   mode?: Mode;
   scarcityHouses?: number;
   scarcityHotels?: number;
+  /** Admin passcode for the deployed instance (set via INSTANCE_PASSCODE env var). */
+  instancePasscode?: string;
 }
 
 export interface JoinRoomInput {

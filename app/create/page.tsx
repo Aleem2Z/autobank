@@ -15,6 +15,7 @@ export default function CreatePage() {
   const router = useRouter();
   const [name, setName] = useState("");
   const [passcode, setPasscode] = useState("");
+  const [instancePasscode, setInstancePasscode] = useState("");
   const [startingBalance, setStartingBalance] = useState<string>(
     String(STARTING_BALANCE_DEFAULT),
   );
@@ -40,6 +41,7 @@ export default function CreatePage() {
         passcode: passcode.trim(),
         startingBalance: Math.floor(balance),
         mode,
+        instancePasscode: instancePasscode.trim() || undefined,
       });
       router.push(`/room/${code}`);
     } catch (err) {
@@ -72,6 +74,22 @@ export default function CreatePage() {
             autoComplete="off"
             maxLength={40}
           />
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="instance-passcode">Admin passcode</Label>
+          <Input
+            id="instance-passcode"
+            type="password"
+            value={instancePasscode}
+            onChange={(e) => setInstancePasscode(e.target.value)}
+            placeholder="Required to create rooms on this instance"
+            autoComplete="off"
+            maxLength={128}
+          />
+          <p className="text-xs text-muted-foreground">
+            Leave blank if your instance doesn&apos;t have one set.
+          </p>
         </div>
 
         <div className="flex flex-col gap-2">

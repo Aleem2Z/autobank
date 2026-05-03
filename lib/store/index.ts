@@ -7,7 +7,15 @@ declare global {
 }
 
 function pickStore(): Store {
-  // Future: if (process.env.UPSTASH_REDIS_REST_URL) return new RedisStore();
+  if (process.env.REDIS_URL) {
+    // Lazy-require so the ioredis module isn't pulled in for in-memory
+    // dev sessions (and so tests that don't set REDIS_URL never connect).
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { RedisStore } = require("./redis") as typeof import("./redis");
+    console.log("[store] using RedisStore");
+    return new RedisStore(process.env.REDIS_URL);
+  }
+  console.log("[store] using MemoryStore (no REDIS_URL set)");
   return new MemoryStore();
 }
 

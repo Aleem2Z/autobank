@@ -22,9 +22,9 @@ A multiplayer wallet for tabletop Monopoly that replaces the human banker. Frien
 
 ## Stack
 
-Next.js 16 (App Router · Turbopack) · React 19 · TypeScript · Tailwind v4 · shadcn/ui · Server-Sent Events for live sync · in-memory store for dev (Upstash Redis adapter wired for prod when needed) · Vitest.
+Next.js 16 (App Router · Turbopack) · React 19 · TypeScript · Tailwind v4 · shadcn/ui · Server-Sent Events for live sync · in-memory store for solo dev with a Redis adapter (`ioredis`) for multi-instance / production · Vitest.
 
-## Run locally
+## Run locally (in-memory)
 
 ```bash
 npm install
@@ -33,6 +33,55 @@ npm run dev
 
 Open `http://localhost:3000`. To play with friends on the same WiFi, find your laptop's LAN IP and have phones open `http://<your-ip>:3000`.
 
+This mode uses an in-process `MemoryStore` — fine for a single dev process, but useless across reloads in serverless and useless across multiple workers.
+
+## Run locally with Docker Redis (recommended)
+
+The fastest way to mirror production: run Redis in Docker, run Next.js on the host.
+
+```bash
+docker compose up redis -d
+REDIS_URL=redis://localhost:6379 npm run dev
+```
+
+Sanity-check Redis is up:
+
+```bash
+docker compose exec redis redis-cli ping   # → PONG
+```
+
+Add `INSTANCE_PASSCODE=secret` to gate room creation:
+
+```bash
+REDIS_URL=redis://localhost:6379 INSTANCE_PASSCODE=secret npm run dev
+```
+
+To shut Redis down: `docker compose down`.
+
+## Run fully containerised
+
+If you want the entire app (Next.js + Redis) in containers:
+
+```bash
+docker compose --profile app up --build
+```
+
+Tear it all down (and remove the volumes / network):
+
+```bash
+docker compose --profile app down
+```
+
+## Environment variables
+
+See `.env.example` for the canonical list. The three you'll touch:
+
+| Var                 | Required           | Purpose                                                                                                              |
+| ------------------- | ------------------ | -------------------------------------------------------------------------------------------------------------------- |
+| `SESSION_SECRET`    | prod               | Long random string used to HMAC-sign the session cookie. Falls back to a hardcoded dev secret if unset.              |
+| `INSTANCE_PASSCODE` | prod (recommended) | Admin passcode required by `POST /api/rooms`. Without this anyone who can reach your URL can create rooms.            |
+| `REDIS_URL`         | prod / multi-host  | Switches the store from in-memory to Redis. Required for multi-instance deployments and for SSE fan-out across pods. |
+
 ## Test
 
 ```bash
@@ -40,14 +89,30 @@ npm test          # vitest run
 npm run test:watch
 ```
 
-25 unit tests covering room codes, the Monopoly preset, the rules engine, and the in-memory store.
+34 unit tests covering room codes, the Monopoly preset, the rules engine, the trade flow, and the in-memory store. Additional Redis-store tests run when `REDIS_URL` is set:
+
+```bash
+docker compose up redis -d
+REDIS_URL=redis://localhost:6379 npm test
+```
 
 ## Deploy to Vercel
 
-1. Push the repo to GitHub.
-2. Import the repo on vercel.com.
-3. Set environment variable `SESSION_SECRET` to a long random string.
-4. (Optional, for shared state across regions) provision Upstash Redis from the Vercel Marketplace; it auto-injects `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN`. The Redis-backed store adapter still needs to be enabled — see the plan doc.
+```bash
+npm i -g vercel
+vercel link            # link this dir to a Vercel project
+vercel env add SESSION_SECRET production
+vercel env add INSTANCE_PASSCODE production
+```
+
+For Redis on Vercel, the easiest path is the Upstash integration on the Vercel Marketplace:
+
+1. Vercel dashboard → your project → **Storage** → **Add** → choose Upstash Redis.
+2. Upstash provisions a database and **auto-injects connection-string env vars** into your project. The exact env-var names depend on the integration version — open your project's **Settings → Environment Variables** to see what was injected. Recent versions inject a standard `REDIS_URL` (a `rediss://default:<token>@<host>:6379` URL); older versions inject `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN`.
+3. **Important**: this app needs `REDIS_URL` (the regular Redis protocol over TLS), not the REST endpoint. The REST endpoint does not support Pub/Sub, and SSE fan-out across serverless instances requires Pub/Sub. If your integration only injected REST vars, copy the standard `REDIS_URL` (or build it as `rediss://default:<UPSTASH_REDIS_REST_TOKEN>@<endpoint-host>:6379`) and add it as `REDIS_URL` in **Settings → Environment Variables**.
+4. Redeploy: `vercel --prod`.
+
+If you prefer to run Redis yourself, any reachable Redis 7+ endpoint works — set `REDIS_URL=redis://...` (or `rediss://...` for TLS) in the project's env vars.
 
 ## Project layout
 
