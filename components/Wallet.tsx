@@ -56,16 +56,21 @@ export function Wallet({
           </div>
         </div>
 
-        {/* Fan anchored to bottom-right of the card. The fan's pivot is at
-            its own bottom-left; the bills sweep up-and-to-the-right from
-            there, naturally hugging the right edge of the card. */}
+        {/* Fan: a single 0×0 anchor placed on the LEFT side of the right
+            half of the card. All bills pivot at this point (their own
+            bottom-left corner) and extend up-and-to-the-right, so the
+            front bill (smallest) lies flat extending right and the
+            back bill (largest, e.g. $500) swings nearly vertical. Anchor
+            is offset enough to keep the front bill from clipping the
+            card's right edge. */}
         <div
           className="absolute z-0 pointer-events-none"
           style={{
-            // Pivot near bottom-right of card, leaving room for the bills
-            // to sweep upward without colliding with the balance text.
-            right: "32%",
-            bottom: 16,
+            // ~46% from the left edge — leaves ~54% of card width for the
+            // front bill (132px sm bill needs ~140px clearance) and stays
+            // clear of the balance text on the upper-left.
+            left: "46%",
+            bottom: 14,
             width: 0,
             height: 0,
           }}

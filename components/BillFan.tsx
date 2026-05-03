@@ -89,25 +89,26 @@ export function BillFan({ cash }: { cash: number }) {
 }
 
 function BillHand({ bills }: { bills: BillCount[] }) {
-  const total = bills.length;
-  // The front (largest) bill leans slightly right — like a hand of cards
-  // that's not perfectly upright. Each subsequent bill rotates further
-  // counter-clockwise from the same pivot, sweeping the fan up-and-left.
-  const FRONT_ROT_DEG = -6;
-  const STEP_DEG = 18;
+  // Smallest denomination sits at the FRONT of the fan (highest z, least
+  // rotated) and the largest bill is BEHIND everything else, peeking out
+  // at the steepest rotation. Same convention as the reference photo.
+  const fanOrder = [...bills].reverse();
+  const total = fanOrder.length;
+  // Front bill horizontal, each subsequent bill +22° CCW from the previous.
+  const STEP_DEG = 22;
   return (
     <>
-      {bills.map((b, idx) => {
-        // idx 0 = largest = front of fan, on top, least rotated
-        const rot = FRONT_ROT_DEG - idx * STEP_DEG;
+      {fanOrder.map((b, idx) => {
+        const rot = -idx * STEP_DEG;
+        // idx 0 (smallest) sits on top.
         const z = total - idx;
         return (
           <motion.div
             key={b.denom}
             layout
-            initial={{ opacity: 0, scale: 0.7, rotate: rot + 25 }}
+            initial={{ opacity: 0, scale: 0.7, rotate: rot + 30 }}
             animate={{ opacity: 1, scale: 1, rotate: rot }}
-            exit={{ opacity: 0, scale: 0.7, rotate: rot + 25 }}
+            exit={{ opacity: 0, scale: 0.7, rotate: rot + 30 }}
             transition={{
               type: "spring",
               stiffness: 280,
@@ -117,9 +118,9 @@ function BillHand({ bills }: { bills: BillCount[] }) {
             className="absolute bottom-0 left-0"
             style={{
               zIndex: z,
-              // All bills pivot around the SAME bottom-left point — that
-              // shared anchor is what makes the fan look like a real
-              // hand of cards rather than a swirl.
+              // All bills pivot around the SAME bottom-left point — the
+              // shared anchor is what turns this into a real hand-fan
+              // instead of a pile of rotated rectangles.
               transformOrigin: "bottom left",
             }}
           >
