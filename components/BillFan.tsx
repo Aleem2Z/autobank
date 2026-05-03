@@ -8,9 +8,8 @@ const DENOMS: Denomination[] = [500, 100, 50, 20, 10, 5, 1];
 
 /**
  * Per-denomination soft caps that mirror the real Monopoly starting wallet
- * distribution (2× $500, 2× $100, 2× $50, 6× $20, 5× $10, 5× $5, 5× $1).
- * Forces variety so round amounts like $1500 produce a fan instead of
- * collapsing into a single denomination.
+ * distribution. Forces variety so round amounts produce a varied fan
+ * instead of collapsing into a single denomination.
  */
 const SOFT_CAPS: Record<Denomination, number> = {
   500: 2,
@@ -56,77 +55,78 @@ function breakdown(cash: number): BillCount[] {
 const MAX_VISIBLE = 5;
 
 /**
- * Hand of Monopoly notes pinned to the bottom-center of the area, fanning
- * upward like cards held in front of you. Each unique denomination shows
- * once — the fan represents *which* notes you hold, not how many.
+ * Hand-of-cards fan of Monopoly notes.
+ *
+ * All bills share a single pivot at their own bottom-left corner — the
+ * front bill (largest denomination) lies nearly horizontal extending
+ * right; each smaller denomination behind it rotates further
+ * counter-clockwise so the stack sweeps up and to the right like a
+ * real hand of fanned bills held in your right hand.
  */
 export function BillFan({ cash }: { cash: number }) {
   const bills = useMemo(() => breakdown(cash).slice(0, MAX_VISIBLE), [cash]);
 
+  if (bills.length === 0) {
+    return (
+      <div
+        className="rounded-lg border-2 border-dashed border-white/30 px-3 py-2 text-white/70 text-xs font-medium inline-block"
+        aria-label="No notes in hand"
+      >
+        No notes
+      </div>
+    );
+  }
+
   return (
     <div
-      className="h-48 relative"
-      aria-label={
-        bills.length === 0
-          ? "No notes in hand"
-          : `Notes in hand: ${bills.map((b) => `$${b.denom}`).join(", ")}`
-      }
+      className="relative w-full h-full"
+      aria-label={`Notes in hand: ${bills.map((b) => `$${b.denom}`).join(", ")}`}
       role="img"
     >
-      {bills.length === 0 ? (
-        <div className="absolute right-2 bottom-2 rounded-lg border-2 border-dashed border-white/30 px-4 py-3 text-white/70 text-sm font-medium">
-          No notes
-        </div>
-      ) : (
-        <BillHand bills={bills} />
-      )}
+      <BillHand bills={bills} />
     </div>
   );
 }
 
 function BillHand({ bills }: { bills: BillCount[] }) {
   const total = bills.length;
-  // Symmetric fan around the bottom-center pivot — bills sweep upward and
-  // outward like cards held in your hand, with the largest denomination on
-  // top (least rotation) and smaller denominations behind it.
-  const STEP_DEG = 13;
-  const center = (total - 1) / 2;
+  // The front (largest) bill leans slightly right — like a hand of cards
+  // that's not perfectly upright. Each subsequent bill rotates further
+  // counter-clockwise from the same pivot, sweeping the fan up-and-left.
+  const FRONT_ROT_DEG = -6;
+  const STEP_DEG = 18;
   return (
-    <div className="absolute left-1/2 bottom-0 -translate-x-1/2">
-      <AnimatePresence initial={false}>
-        {bills.map((b, idx) => {
-          // Largest denom (idx 0) sits in the middle — the most-prominent
-          // bill of a real fan held front-and-center.
-          const offset = idx - center;
-          const rot = offset * STEP_DEG;
-          const z = total - idx;
-          return (
-            <motion.div
-              key={b.denom}
-              layout
-              initial={{ opacity: 0, scale: 0.8, y: 12, rotate: rot * 0.4 }}
-              animate={{ opacity: 1, scale: 1, y: 0, rotate: rot }}
-              exit={{ opacity: 0, scale: 0.8, y: 12, rotate: rot * 0.4 }}
-              transition={{
-                type: "spring",
-                stiffness: 280,
-                damping: 24,
-                opacity: { duration: 0.2 },
-              }}
-              className="absolute bottom-0 left-1/2"
-              style={{
-                zIndex: z,
-                // Pivot at the bottom-center of each bill so they rotate
-                // around the same point at the base of the fan.
-                transformOrigin: "50% 100%",
-                marginLeft: -66, // half of sm bill width (132/2)
-              }}
-            >
-              <MoneyBill denomination={b.denom} count={1} size="sm" />
-            </motion.div>
-          );
-        })}
-      </AnimatePresence>
-    </div>
+    <>
+      {bills.map((b, idx) => {
+        // idx 0 = largest = front of fan, on top, least rotated
+        const rot = FRONT_ROT_DEG - idx * STEP_DEG;
+        const z = total - idx;
+        return (
+          <motion.div
+            key={b.denom}
+            layout
+            initial={{ opacity: 0, scale: 0.7, rotate: rot + 25 }}
+            animate={{ opacity: 1, scale: 1, rotate: rot }}
+            exit={{ opacity: 0, scale: 0.7, rotate: rot + 25 }}
+            transition={{
+              type: "spring",
+              stiffness: 280,
+              damping: 24,
+              opacity: { duration: 0.2 },
+            }}
+            className="absolute bottom-0 left-0"
+            style={{
+              zIndex: z,
+              // All bills pivot around the SAME bottom-left point — that
+              // shared anchor is what makes the fan look like a real
+              // hand of cards rather than a swirl.
+              transformOrigin: "bottom left",
+            }}
+          >
+            <MoneyBill denomination={b.denom} count={1} size="sm" />
+          </motion.div>
+        );
+      })}
+    </>
   );
 }
