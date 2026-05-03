@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ArrowRight, LogIn, Plus } from "lucide-react";
+import { InstallButton } from "@/components/InstallButton";
 import { isValidCode, ROOM_CODE_LENGTH } from "@/lib/game/codes";
 import { cn } from "@/lib/utils";
 
@@ -144,6 +145,13 @@ export default function Home() {
             </li>
           ))}
         </ul>
+
+        {/* PWA install CTA — only renders when the browser actually supports
+            install (Chrome/Edge/Android Chrome) or on iOS Safari (where it
+            opens an instructions sheet). Hidden when already installed. */}
+        <div className="flex justify-center pt-2">
+          <InstallButton />
+        </div>
 
         <footer className="text-[11px] text-center text-on-surface-variant/60 mt-auto pt-4">
           Open the same code on every player&apos;s phone.

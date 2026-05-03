@@ -94,8 +94,10 @@ function BillHand({ bills }: { bills: BillCount[] }) {
   // at the steepest rotation. Same convention as the reference photo.
   const fanOrder = [...bills].reverse();
   const total = fanOrder.length;
-  // Front bill horizontal, each subsequent bill +22° CCW from the previous.
-  const STEP_DEG = 22;
+  // Front bill horizontal, each subsequent bill +32° CCW from the previous.
+  // Five bills × 32° = 128° total spread — bills sweep OVER the pivot like
+  // the reference photo (the back bill ends up near-upside-down).
+  const STEP_DEG = 32;
   return (
     <>
       {fanOrder.map((b, idx) => {

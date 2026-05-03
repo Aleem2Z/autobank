@@ -19,7 +19,7 @@ export function Wallet({
           tucked into the bottom-right. Compact: balance sits top-left,
           fan overlaps the lower-right of the same card. */}
       <div
-        className="relative w-full rounded-[2rem] bg-gradient-hero p-5 pb-6 overflow-hidden shadow-ambient-brand text-white min-h-[200px]"
+        className="relative w-full rounded-[2rem] bg-gradient-hero p-5 pb-6 overflow-hidden shadow-ambient-brand text-white min-h-[230px]"
         aria-label={`${player.name}'s wallet`}
       >
         {/* Decorative blurred orbs */}
@@ -66,11 +66,11 @@ export function Wallet({
         <div
           className="absolute z-0 pointer-events-none"
           style={{
-            // ~46% from the left edge — leaves ~54% of card width for the
-            // front bill (132px sm bill needs ~140px clearance) and stays
-            // clear of the balance text on the upper-left.
-            left: "46%",
-            bottom: 14,
+            // ~52% from left — leaves ~48% (~170px) of card width for the
+            // front bill (132 sm-bill + headroom) and ~52% leftward for
+            // the back bill which sweeps near-upside-down at 128° rotation.
+            left: "52%",
+            bottom: 16,
             width: 0,
             height: 0,
           }}
