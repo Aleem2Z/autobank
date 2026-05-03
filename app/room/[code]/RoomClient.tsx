@@ -13,11 +13,12 @@ import { TransferSheet } from "@/components/TransferSheet";
 import { SplitSheet } from "@/components/SplitSheet";
 import { TradeSheet } from "@/components/TradeSheet";
 import { JoinOverlay } from "@/components/JoinOverlay";
+import { MortgageSheet } from "@/components/MortgageSheet";
 import { SoundToggle } from "@/components/SoundToggle";
 import { BalanceTicker } from "@/components/animations/BalanceTicker";
 import { useRoom } from "@/lib/client/useRoom";
 import { useNotifications } from "@/lib/client/useNotifications";
-import type { Player, Room, Transaction } from "@/lib/game/types";
+import type { Player, PlayerAsset, Room, Transaction } from "@/lib/game/types";
 import { cn } from "@/lib/utils";
 
 function pendingForYou(txs: Transaction[], you: string): Transaction[] {
@@ -80,6 +81,7 @@ export default function RoomClient({ code }: { code: string }) {
   useNotifications(room, you);
   const [copied, setCopied] = useState(false);
   const [openSheet, setOpenSheet] = useState<Sheet>(null);
+  const [mortgaging, setMortgaging] = useState<PlayerAsset | null>(null);
   const closeSheet = () => setOpenSheet(null);
 
   const highlightedIds = useMemo(
@@ -213,7 +215,7 @@ export default function RoomClient({ code }: { code: string }) {
         </AnimatePresence>
 
         {/* Wallet */}
-        <Wallet player={me} />
+        <Wallet player={me} onPropertyTap={setMortgaging} />
 
         {/* Other players */}
         {others.length > 0 && (
@@ -267,6 +269,15 @@ export default function RoomClient({ code }: { code: string }) {
       )}
       {openSheet?.kind === "trade" && (
         <TradeSheet room={room} you={me} open onClose={closeSheet} />
+      )}
+      {mortgaging && (
+        <MortgageSheet
+          asset={mortgaging}
+          room={room}
+          you={me}
+          open
+          onClose={() => setMortgaging(null)}
+        />
       )}
     </main>
   );

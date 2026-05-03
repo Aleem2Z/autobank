@@ -1,12 +1,18 @@
 "use client";
 
 import { Building2 } from "lucide-react";
-import type { Player } from "@/lib/game/types";
+import type { Player, PlayerAsset } from "@/lib/game/types";
 import { PropertyCard } from "@/components/PropertyCard";
 import { BalanceTicker } from "@/components/animations/BalanceTicker";
 import { BillFan } from "@/components/BillFan";
 
-export function Wallet({ player }: { player: Player }) {
+export function Wallet({
+  player,
+  onPropertyTap,
+}: {
+  player: Player;
+  onPropertyTap?: (asset: PlayerAsset) => void;
+}) {
   return (
     <section className="flex flex-col gap-6">
       {/* Hero balance card — gradient teal→cyan with isometric "card stack" */}
@@ -79,7 +85,14 @@ export function Wallet({ player }: { player: Player }) {
           <div className="flex overflow-x-auto hide-scrollbar snap-x snap-mandatory px-5 pb-2 gap-3">
             {player.assets.map((a, idx) => (
               <div key={`${a.defId}-${idx}`} className="snap-center shrink-0">
-                <PropertyCard defId={a.defId} asset={a} size="md" />
+                <PropertyCard
+                  defId={a.defId}
+                  asset={a}
+                  size="md"
+                  onClick={
+                    onPropertyTap ? () => onPropertyTap(a) : undefined
+                  }
+                />
               </div>
             ))}
             <div className="shrink-0 w-2" />
