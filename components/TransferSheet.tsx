@@ -66,6 +66,17 @@ export function TransferSheet({
     [room.players, you.id],
   );
 
+  // Properties available to buy from the bank = those no player owns yet.
+  // Once auctioned/owned, they're excluded until they return to the bank
+  // via a future "return to bank" / auction-fail flow.
+  const availableProperties = useMemo(() => {
+    const owned = new Set<string>();
+    for (const p of room.players) {
+      for (const a of p.assets) owned.add(a.defId);
+    }
+    return MONOPOLY_US.filter((a) => !owned.has(a.id));
+  }, [room.players]);
+
   // Reset only on the leading edge of `open` going false → true (or when kind changes).
   // Depending on `others` would re-fire every SSE update and clobber user input.
   const wasOpen = useRef(false);
@@ -221,17 +232,33 @@ export function TransferSheet({
               <Label htmlFor="property">Property</Label>
               <select
                 id="property"
-                className="h-8 rounded-lg border border-input bg-transparent px-2 text-sm"
+                className="h-10 rounded-lg border border-input bg-transparent px-3 text-sm"
                 value={propertyId}
-                onChange={(e) => setPropertyId(e.target.value)}
+                onChange={(e) => {
+                  const id = e.target.value;
+                  setPropertyId(id);
+                  const def = availableProperties.find((a) => a.id === id);
+                  if (def?.price) setAmount(String(def.price));
+                }}
               >
                 <option value="">— select —</option>
-                {MONOPOLY_US.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.name} {a.price ? `($${a.price})` : ""}
+                {availableProperties.length === 0 ? (
+                  <option value="" disabled>
+                    No properties left in the bank
                   </option>
-                ))}
+                ) : (
+                  availableProperties.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.name} {a.price ? `($${a.price})` : ""}
+                    </option>
+                  ))
+                )}
               </select>
+              {propertyId && (
+                <p className="text-xs text-muted-foreground">
+                  Price auto-filled. Edit if your group is auctioning at a different amount.
+                </p>
+              )}
             </div>
           )}
 
