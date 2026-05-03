@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { canConfirm, applyTransaction, validateProposal, reverseTransaction } from "@/lib/game/rules";
+import { canConfirm, applyTransaction, validateProposal } from "@/lib/game/rules";
 import type { Room, Transaction, Player } from "@/lib/game/types";
 
 function newPlayer(id: string, cash = 1500, isAdmin = false): Player {
@@ -211,24 +211,5 @@ describe("rules.applyTransaction", () => {
     expect(next.players.find((p) => p.id === "b")!.cash).toBe(100);
     expect(next.players.find((p) => p.id === "c")!.cash).toBe(100);
     expect(next.players.find((p) => p.id === "d")!.cash).toBe(100);
-  });
-});
-
-describe("rules.reverseTransaction", () => {
-  it("flips cash directions", () => {
-    const tx: Transaction = {
-      id: "t1",
-      kind: "p2p",
-      reason: "rent",
-      cash: [{ fromPlayerId: "b", toPlayerId: "a", amount: 200 }],
-      proposedBy: "a",
-      proposedAt: 0,
-      requiresConfirmFrom: ["b"],
-      confirmedBy: ["b"],
-      status: "confirmed",
-    };
-    const r = reverseTransaction(tx);
-    expect(r.cash?.[0]).toEqual({ fromPlayerId: "a", toPlayerId: "b", amount: 200 });
-    expect(r.id).toBe("t1-undo");
   });
 });

@@ -1,14 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import { toast } from "sonner";
 import { AnimatePresence, motion } from "framer-motion";
-import { CheckCircle2, Clock, XCircle, Undo2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { CheckCircle2, Clock, XCircle } from "lucide-react";
 import { REASON_LABELS, getAssetDef } from "@/lib/game/monopoly";
 import type { Room, Transaction } from "@/lib/game/types";
 import { formatMoney, cn } from "@/lib/utils";
-import { api } from "@/lib/client/api";
 
 function StatusChip({ status }: { status: Transaction["status"] }) {
   const map = {
@@ -26,11 +22,6 @@ function StatusChip({ status }: { status: Transaction["status"] }) {
       Icon: XCircle,
       label: "Rejected",
       cls: "text-destructive bg-destructive/10",
-    },
-    reversed: {
-      Icon: Undo2,
-      label: "Reversed",
-      cls: "text-muted-foreground bg-muted",
     },
   } as const;
   const { Icon, label, cls } = map[status];
@@ -106,23 +97,9 @@ function describe(room: Room, tx: Transaction, you: string): Described {
 }
 
 export function Ledger({ room, you }: { room: Room; you: string }) {
-  const [busyId, setBusyId] = useState<string | null>(null);
-
   const items = [...room.transactions]
     .sort((a, b) => b.proposedAt - a.proposedAt)
     .slice(0, 30);
-
-  async function onUndo(id: string) {
-    setBusyId(id);
-    try {
-      await api.undo(room.code, id);
-      toast.success("Reversed.");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not undo.");
-    } finally {
-      setBusyId(null);
-    }
-  }
 
   return (
     <section className="rounded-2xl bg-card border border-border/60 flex flex-col">
@@ -149,13 +126,9 @@ export function Ledger({ room, you }: { room: Room; you: string }) {
                 you,
               );
               const reasonLabel = REASON_LABELS[tx.reason]?.label ?? tx.reason;
-              const involved =
-                tx.proposedBy === you || tx.requiresConfirmFrom.includes(you);
-              const canUndo =
-                tx.status === "confirmed" && !tx.reversedBy && involved;
 
               const amountColor =
-                tx.status === "reversed" || tx.status === "rejected"
+                tx.status === "rejected"
                   ? "text-muted-foreground line-through"
                   : signForViewer === 1
                     ? "text-[var(--mono-green)]"
@@ -219,17 +192,6 @@ export function Ledger({ room, you }: { room: Room; you: string }) {
                         {sign}
                         {formatMoney(amount).replace(/^-/, "")}
                       </span>
-                    )}
-                    {canUndo && (
-                      <Button
-                        size="xs"
-                        variant="outline"
-                        disabled={busyId === tx.id}
-                        onClick={() => onUndo(tx.id)}
-                        className="rounded-lg"
-                      >
-                        Undo
-                      </Button>
                     )}
                   </div>
                 </motion.li>

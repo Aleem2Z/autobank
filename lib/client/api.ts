@@ -94,9 +94,4 @@ export const api = {
       body: JSON.stringify({ decision }),
     });
   },
-  undo(code: string, txId: string) {
-    return request<{ tx: Transaction }>(`/api/rooms/${code}/transactions/${txId}/undo`, {
-      method: "POST",
-    });
-  },
 };

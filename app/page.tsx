@@ -1,93 +1,102 @@
 import Link from "next/link";
-import { ArrowRight, Plus, KeyRound } from "lucide-react";
+import { ArrowRight, LogIn, Plus } from "lucide-react";
 
 export default function Home() {
   return (
     <main className="flex flex-1 flex-col animate-in fade-in duration-500">
-      <div className="flex-1 max-w-md w-full mx-auto px-6 pt-20 pb-10 flex flex-col gap-12">
-        {/* Hero — kerned wordmark with a single green accent dot. */}
-        <header className="flex flex-col items-center text-center gap-4 pt-10">
-          <span className="inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.32em] text-muted-foreground font-medium">
-            <span className="size-1 rounded-full bg-[var(--mono-green)]" aria-hidden />
-            Tabletop Banking
-          </span>
-          <h1
-            className="text-[64px] leading-[0.85] font-black tracking-[-0.04em] flex items-baseline"
-            style={{ fontFamily: "var(--font-serif)" }}
-          >
-            <span>Autobank</span>
-            <span
-              className="inline-block size-3 rounded-full bg-[var(--mono-green)] ml-1.5 translate-y-[-0.06em]"
-              aria-hidden
-            />
+      {/* Top app bar — fixed */}
+      <header className="fixed top-0 inset-x-0 z-50 top-bar-bg">
+        <div className="flex justify-between items-center px-6 py-4 max-w-2xl mx-auto">
+          <span
+            className="size-9"
+            aria-hidden
+          />
+          <h1 className="text-xl font-black tracking-tighter text-foreground">
+            Autobank
           </h1>
-          <p className="text-[15px] text-muted-foreground leading-relaxed max-w-[280px]">
-            The fairest banker your tabletop Monopoly never had —
-            <span className="text-foreground/80 font-medium"> no cheating, no accounts, just play.</span>
-          </p>
-        </header>
+          <span className="size-9" aria-hidden />
+        </div>
+      </header>
 
-        {/* Action cards — flat, premium, big icon chip on left */}
-        <div className="flex flex-col gap-3">
+      {/* Canvas */}
+      <div className="flex-1 w-full max-w-2xl mx-auto pt-24 px-5 pb-10 flex flex-col gap-6">
+        {/* Hero welcome */}
+        <section className="flex flex-col gap-2 py-6">
+          <h2 className="text-[36px] leading-[44px] font-bold tracking-tight text-foreground">
+            Ready to play?
+          </h2>
+          <p className="text-base text-on-surface-variant">
+            Start a new session or join an existing ledger room.
+          </p>
+        </section>
+
+        {/* Primary actions bento */}
+        <section className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {/* Create */}
           <Link
             href="/create"
             aria-label="Create a new room"
-            className="press-card group relative flex items-center gap-4 px-4 py-5 rounded-2xl bg-card border border-border/60 hover:-translate-y-0.5 hover:shadow-[0_18px_40px_-22px_rgba(20,80,50,0.45)]"
+            className="group relative overflow-hidden bg-gradient-brand text-primary-foreground rounded-[2rem] p-6 aspect-square flex flex-col justify-between items-start shadow-ambient-brand sink-on-press"
           >
-            <div className="size-14 rounded-2xl bg-[var(--mono-green)] text-white flex items-center justify-center shadow-[0_6px_18px_-6px_color-mix(in_oklch,var(--mono-green)_60%,transparent)]">
-              <Plus className="size-6" strokeWidth={2.5} />
+            <div className="absolute top-0 right-0 size-48 bg-white/10 rounded-full -mr-16 -mt-16 transition-transform group-hover:scale-110 duration-500" />
+            <div className="bg-white/20 p-4 rounded-full backdrop-blur-sm">
+              <Plus className="size-8" strokeWidth={2.5} />
             </div>
-            <div className="flex-1 min-w-0">
-              <div
-                className="text-lg leading-tight font-semibold tracking-tight"
-                style={{ fontFamily: "var(--font-serif)" }}
-              >
+            <div className="flex flex-col gap-1 relative z-10">
+              <h3 className="text-2xl font-bold tracking-tight leading-[32px]">
                 Create Room
-              </div>
-              <div className="text-[13px] text-muted-foreground mt-0.5">
-                Start a game · share a 4-letter code
-              </div>
+              </h3>
+              <p className="text-sm opacity-90">Host a new game ledger</p>
             </div>
-            <ArrowRight className="size-5 text-muted-foreground/50 transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
           </Link>
 
+          {/* Join */}
           <Link
             href="/join"
             aria-label="Join an existing room"
-            className="press-card group relative flex items-center gap-4 px-4 py-5 rounded-2xl bg-card border border-border/60 hover:-translate-y-0.5 hover:shadow-[0_18px_40px_-22px_rgba(20,30,30,0.35)]"
+            className="group relative overflow-hidden bg-surface-lowest text-foreground rounded-[2rem] p-6 aspect-square flex flex-col justify-between items-start shadow-ambient sink-on-press border-2 border-transparent hover:border-brand/20"
           >
-            <div className="size-14 rounded-2xl bg-foreground text-background flex items-center justify-center shadow-[0_6px_18px_-6px_rgba(0,0,0,0.4)]">
-              <KeyRound className="size-6" strokeWidth={2.5} />
+            <div className="absolute bottom-0 right-0 size-40 bg-surface opacity-50 rounded-full -mr-12 -mb-12 transition-transform group-hover:scale-110 duration-500" />
+            <div className="bg-brand/10 text-brand p-4 rounded-full">
+              <LogIn className="size-8" strokeWidth={2.5} />
             </div>
-            <div className="flex-1 min-w-0">
-              <div
-                className="text-lg leading-tight font-semibold tracking-tight"
-                style={{ fontFamily: "var(--font-serif)" }}
-              >
+            <div className="flex flex-col gap-1 relative z-10 w-full">
+              <h3 className="text-2xl font-bold tracking-tight leading-[32px]">
                 Join Room
-              </div>
-              <div className="text-[13px] text-muted-foreground mt-0.5">
-                Enter a code your group shared with you
+              </h3>
+              <p className="text-sm text-on-surface-variant mb-3">
+                Enter a code to connect
+              </p>
+              <div className="flex bg-surface rounded-2xl p-2 items-center w-full">
+                <span className="text-[11px] uppercase tracking-[0.06em] font-semibold text-outline px-2">
+                  Code
+                </span>
+                <div className="h-5 w-px bg-outline-variant mx-2" />
+                <span className="font-mono text-base text-on-surface-variant opacity-50 flex-1 tracking-[0.3em]">
+                  ____
+                </span>
+                <span className="bg-brand text-white p-1.5 rounded-full inline-flex items-center justify-center">
+                  <ArrowRight className="size-4" strokeWidth={2.5} />
+                </span>
               </div>
             </div>
-            <ArrowRight className="size-5 text-muted-foreground/50 transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
           </Link>
-        </div>
+        </section>
 
-        {/* Trust pills — compact row of three */}
-        <ul className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 text-[12px] text-muted-foreground">
+        {/* Trust pills */}
+        <ul className="flex flex-wrap items-center justify-center gap-2 text-xs text-on-surface-variant pt-2">
           {["No accounts", "Cheat-proof", "Plays nice"].map((feature) => (
             <li
               key={feature}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border/60 bg-card/60"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border bg-surface-lowest"
             >
-              <span className="size-1.5 rounded-full bg-[var(--mono-green)]" aria-hidden />
+              <span className="size-1.5 rounded-full bg-brand" aria-hidden />
               {feature}
             </li>
           ))}
         </ul>
 
-        <footer className="text-[11px] text-center text-muted-foreground/60 mt-auto pt-4">
+        <footer className="text-[11px] text-center text-on-surface-variant/60 mt-auto pt-4">
           Open the same code on every player&apos;s phone.
         </footer>
       </div>

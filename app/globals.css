@@ -8,8 +8,8 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-serif: var(--font-serif);
+  --font-mono: var(--font-mono);
+  --font-serif: var(--font-sans);
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -40,6 +40,27 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+
+  /* v6 additional surface tones */
+  --color-surface-lowest: var(--surface-lowest);
+  --color-surface-low: var(--surface-low);
+  --color-surface: var(--surface);
+  --color-surface-high: var(--surface-high);
+  --color-surface-highest: var(--surface-highest);
+  --color-on-surface-variant: var(--on-surface-variant);
+  --color-outline: var(--outline);
+  --color-outline-variant: var(--outline-variant);
+
+  /* Semantic currency tones (sent / received / brand-action) */
+  --color-sent: var(--sent);
+  --color-sent-soft: var(--sent-soft);
+  --color-received: var(--received);
+  --color-received-soft: var(--received-soft);
+  --color-brand: var(--brand);
+  --color-brand-soft: var(--brand-soft);
+  --color-error-soft: var(--error-soft);
+
+  /* Monopoly board property-group colors (preserved — these are board-semantic) */
   --color-mono-brown: var(--mono-brown);
   --color-mono-lightblue: var(--mono-lightblue);
   --color-mono-pink: var(--mono-pink);
@@ -50,54 +71,82 @@
   --color-mono-darkblue: var(--mono-darkblue);
   --color-mono-rail: var(--mono-rail);
   --color-mono-utility: var(--mono-utility);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
+
+  --radius-sm: calc(var(--radius) * 0.5);
+  --radius-md: calc(var(--radius) * 0.75);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
+  --radius-xl: calc(var(--radius) * 1.5);
+  --radius-2xl: calc(var(--radius) * 2);
+  --radius-3xl: calc(var(--radius) * 3);
+  --radius-4xl: calc(var(--radius) * 4);
 }
 
 :root {
-  /* Monopoly board cream */
-  --background: oklch(0.965 0.022 85);
-  --foreground: oklch(0.18 0.015 60);
-  --card: oklch(0.995 0.005 85);
-  --card-foreground: oklch(0.18 0.015 60);
-  --popover: oklch(0.995 0.005 85);
-  --popover-foreground: oklch(0.18 0.015 60);
-  /* Monopoly green */
-  --primary: oklch(0.46 0.13 152);
-  --primary-foreground: oklch(0.985 0.005 85);
-  /* Monopoly red */
-  --secondary: oklch(0.56 0.22 27);
-  --secondary-foreground: oklch(0.985 0.005 85);
-  --muted: oklch(0.92 0.02 85);
-  --muted-foreground: oklch(0.42 0.02 60);
-  /* Gold */
-  --accent: oklch(0.78 0.16 80);
-  --accent-foreground: oklch(0.18 0.015 60);
-  --destructive: oklch(0.56 0.22 27);
-  --border: oklch(0.85 0.02 80);
-  --input: oklch(0.88 0.018 80);
-  --ring: oklch(0.46 0.13 152);
-  --chart-1: oklch(0.46 0.13 152);
-  --chart-2: oklch(0.56 0.22 27);
-  --chart-3: oklch(0.78 0.16 80);
-  --chart-4: oklch(0.35 0.13 252);
-  --chart-5: oklch(0.65 0.20 340);
-  --radius: 0.75rem;
-  --sidebar: oklch(0.965 0.022 85);
-  --sidebar-foreground: oklch(0.18 0.015 60);
-  --sidebar-primary: oklch(0.46 0.13 152);
-  --sidebar-primary-foreground: oklch(0.985 0.005 85);
-  --sidebar-accent: oklch(0.92 0.02 85);
-  --sidebar-accent-foreground: oklch(0.18 0.015 60);
-  --sidebar-border: oklch(0.85 0.02 80);
-  --sidebar-ring: oklch(0.46 0.13 152);
+  /* Heritage Ledger v6 — cool fintech canvas */
+  --background: #f9f9fc;
+  --foreground: #1a1c1e;
 
-  /* Monopoly color group palette (used by PropertyCard) */
+  /* Surface layering (Material 3-style tonal elevation) */
+  --surface-lowest: #ffffff;
+  --surface-low: #f3f3f6;
+  --surface: #eeeef0;
+  --surface-high: #e8e8ea;
+  --surface-highest: #e2e2e5;
+
+  --card: #ffffff;
+  --card-foreground: #1a1c1e;
+  --popover: #ffffff;
+  --popover-foreground: #1a1c1e;
+
+  /* Brand action (formerly M3 primary-container — the bright cyan you actually click) */
+  --primary: #2bb5ff;
+  --primary-foreground: #ffffff;
+  --brand: #2bb5ff;
+  --brand-soft: #cae6ff;
+
+  /* Sent / outbound (warm orange-coral) */
+  --secondary: #fd8946;
+  --secondary-foreground: #ffffff;
+  --sent: #fd8946;
+  --sent-soft: #ffdbca;
+
+  /* Received / inbound (teal) */
+  --accent: #00c0af;
+  --accent-foreground: #ffffff;
+  --received: #00c0af;
+  --received-soft: #64f9e6;
+
+  --muted: #eeeef0;
+  --muted-foreground: #3e4851;
+
+  --destructive: #ba1a1a;
+  --error-soft: #ffdad6;
+
+  --border: #e2e2e5;
+  --input: #eeeef0;
+  --ring: #2bb5ff;
+  --outline: #6e7882;
+  --outline-variant: #bdc8d2;
+  --on-surface-variant: #3e4851;
+
+  --chart-1: #2bb5ff;
+  --chart-2: #fd8946;
+  --chart-3: #00c0af;
+  --chart-4: #006492;
+  --chart-5: #9d4300;
+
+  --radius: 1rem;
+
+  --sidebar: #f9f9fc;
+  --sidebar-foreground: #1a1c1e;
+  --sidebar-primary: #2bb5ff;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #eeeef0;
+  --sidebar-accent-foreground: #1a1c1e;
+  --sidebar-border: #e2e2e5;
+  --sidebar-ring: #2bb5ff;
+
+  /* Monopoly property-group colors (board-semantic, kept) */
   --mono-brown: oklch(0.36 0.08 50);
   --mono-lightblue: oklch(0.82 0.08 230);
   --mono-pink: oklch(0.70 0.18 340);
@@ -108,29 +157,34 @@
   --mono-darkblue: oklch(0.35 0.13 252);
   --mono-rail: oklch(0.20 0.02 0);
   --mono-utility: oklch(0.55 0.03 230);
-
-  --font-serif: "Iowan Old Style", "Apple Garamond", "Baskerville", "Times New Roman", "Droid Serif", Times, "Source Serif Pro", serif;
 }
 
 .dark {
-  --background: oklch(0.18 0.015 60);
-  --foreground: oklch(0.965 0.022 85);
-  --card: oklch(0.22 0.018 60);
-  --card-foreground: oklch(0.965 0.022 85);
-  --popover: oklch(0.22 0.018 60);
-  --popover-foreground: oklch(0.965 0.022 85);
-  --primary: oklch(0.6 0.14 152);
-  --primary-foreground: oklch(0.18 0.015 60);
-  --secondary: oklch(0.62 0.20 27);
-  --secondary-foreground: oklch(0.965 0.022 85);
-  --muted: oklch(0.28 0.02 60);
-  --muted-foreground: oklch(0.72 0.02 80);
-  --accent: oklch(0.78 0.16 80);
-  --accent-foreground: oklch(0.18 0.015 60);
-  --destructive: oklch(0.62 0.20 27);
-  --border: oklch(1 0 0 / 12%);
-  --input: oklch(1 0 0 / 16%);
-  --ring: oklch(0.6 0.14 152);
+  --background: #14161a;
+  --foreground: #f0f0f3;
+  --surface-lowest: #1c1f23;
+  --surface-low: #1f2226;
+  --surface: #232629;
+  --surface-high: #2a2d31;
+  --surface-highest: #33363a;
+  --card: #1c1f23;
+  --card-foreground: #f0f0f3;
+  --popover: #1c1f23;
+  --popover-foreground: #f0f0f3;
+  --primary: #2bb5ff;
+  --primary-foreground: #001e2f;
+  --secondary: #fd8946;
+  --secondary-foreground: #ffffff;
+  --accent: #00c0af;
+  --muted: #232629;
+  --muted-foreground: #b8c0c8;
+  --destructive: #ff8a8a;
+  --border: rgba(255, 255, 255, 0.10);
+  --input: rgba(255, 255, 255, 0.12);
+  --ring: #2bb5ff;
+  --outline: #8a949e;
+  --outline-variant: rgba(189, 200, 210, 0.25);
+  --on-surface-variant: #b8c0c8;
 }
 
 @layer base {
@@ -150,37 +204,56 @@
   .pressable { @apply active:scale-[0.97] transition-transform; }
   .tabular-nums { font-variant-numeric: tabular-nums; }
 
-  /* Subtle paper-grain noise overlay for property cards */
-  .paper {
-    background-image:
-      radial-gradient(circle at 1px 1px, rgba(0,0,0,0.025) 1px, transparent 0);
-    background-size: 4px 4px;
+  /* Hide scrollbar for horizontal carousels */
+  .hide-scrollbar::-webkit-scrollbar { display: none; }
+  .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+  /* v6 ambient shadows — soft, low-contrast, blue-tinted */
+  .shadow-ambient {
+    box-shadow: 0 20px 40px rgba(0, 100, 146, 0.05);
+  }
+  .shadow-ambient-brand {
+    box-shadow: 0 20px 40px rgba(43, 181, 255, 0.18);
+  }
+  .shadow-ambient-coral {
+    box-shadow: 0 20px 40px rgba(253, 137, 70, 0.18);
+  }
+  .shadow-soft {
+    box-shadow: 0 10px 40px rgba(0, 68, 100, 0.04), 0 4px 10px rgba(0, 68, 100, 0.02);
+  }
+  .shadow-card-soft {
+    box-shadow: 0 12px 24px -8px rgba(0, 0, 0, 0.04);
   }
 
-  /* Premium debit-card surface: dark green gradient with diagonal sheen
-     and a faint chevron pattern in the corner. Mimics the SadaPay card. */
-  .card-surface-deep {
-    background:
-      linear-gradient(135deg, oklch(0.42 0.13 152) 0%, oklch(0.32 0.10 158) 100%);
+  /* v6 gradients */
+  .bg-gradient-brand {
+    background: linear-gradient(135deg, #2bb5ff 0%, #00a4ff 100%);
   }
-  .card-grain {
-    background-image:
-      radial-gradient(circle at 1px 1px, rgba(255,255,255,0.06) 1px, transparent 0),
-      radial-gradient(circle at 6px 6px, rgba(255,255,255,0.04) 1px, transparent 0);
-    background-size: 4px 4px, 8px 8px;
+  .bg-gradient-coral {
+    background: linear-gradient(135deg, #fd8946 0%, #f96d1b 100%);
   }
-  .card-chevron {
-    background-image:
-      repeating-linear-gradient(
-        135deg,
-        rgba(255,255,255,0.05) 0,
-        rgba(255,255,255,0.05) 1px,
-        transparent 1px,
-        transparent 12px
-      );
+  .bg-gradient-hero {
+    background: linear-gradient(135deg, #00c0af 0%, #2bb5ff 100%);
   }
 
-  /* Big-number "$" + amount: leading currency offset slightly. */
+  /* Press / sink interaction */
+  .sink-on-press {
+    transition: transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1),
+                box-shadow 200ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .sink-on-press:active {
+    transform: scale(0.98) translateY(2px);
+    box-shadow: 0 10px 20px rgba(0, 100, 146, 0.04);
+  }
+  .press-card {
+    transition: transform 150ms cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 200ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .press-card:active {
+    transform: scale(0.985);
+  }
+
+  /* Big-number "$" prefix */
   .balance-currency {
     font-size: 0.5em;
     line-height: 1;
@@ -192,20 +265,13 @@
     opacity: 0.85;
   }
 
-  /* Generic press feedback used by big interactive cards. */
-  .press-card {
-    transition: transform 150ms cubic-bezier(0.22, 1, 0.36, 1),
-      box-shadow 200ms cubic-bezier(0.22, 1, 0.36, 1);
-  }
-  .press-card:active {
-    transform: scale(0.985);
-    box-shadow: 0 1px 0 rgba(0,0,0,0.04) !important;
-  }
-
-  /* Top-rounded sticky bar (phone-nav-style). */
+  /* Top app bar / bottom nav surfaces */
   .nav-bar-shadow {
-    box-shadow:
-      0 -1px 0 rgba(0, 0, 0, 0.04),
-      0 -10px 24px -16px rgba(0, 0, 0, 0.18);
+    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.04);
+  }
+  .top-bar-bg {
+    background: rgba(249, 249, 252, 0.85);
+    backdrop-filter: saturate(150%) blur(12px);
+    -webkit-backdrop-filter: saturate(150%) blur(12px);
   }
 }

@@ -72,20 +72,3 @@ export function applyTransaction(room: Room, tx: Transaction): Room {
 
   return { ...room, players };
 }
-
-export function reverseTransaction(tx: Transaction): Transaction {
-  const reverse = (m: { fromPlayerId: string; toPlayerId: string; amount: number }) => ({
-    fromPlayerId: m.toPlayerId,
-    toPlayerId: m.fromPlayerId,
-    amount: m.amount,
-  });
-  return {
-    ...tx,
-    id: `${tx.id}-undo`,
-    cash: tx.cash?.map(reverse),
-    splitChildren: tx.splitChildren?.map((c) => ({ toPlayerId: tx.proposedBy, amount: c.amount })),
-    assets: tx.assets?.map((a) => ({ ...a, fromPlayerId: a.toPlayerId, toPlayerId: a.fromPlayerId })),
-    status: "confirmed",
-    proposedAt: Date.now(),
-  };
-}

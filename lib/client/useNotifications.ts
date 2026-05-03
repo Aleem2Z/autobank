@@ -249,30 +249,6 @@ export function useNotifications(room: Room | null, you: string | null): void {
                 playSound("error");
               }
             }
-          } else if (tx.status === "reversed") {
-            // Notify everyone involved (except whoever did the reversal).
-            const involved =
-              tx.cash?.some(
-                (c) => c.fromPlayerId === you || c.toPlayerId === you,
-              ) ||
-              tx.splitChildren?.some((c) => c.toPlayerId === you) ||
-              tx.assets?.some(
-                (a) => a.fromPlayerId === you || a.toPlayerId === you,
-              ) ||
-              tx.proposedBy === you;
-            const reverser = tx.reversedBy ?? "";
-            if (involved && reverser && reverser !== you) {
-              const key = `${tx.id}:reversed` as NotifiedKey;
-              if (!notified.has(key)) {
-                notified.add(key);
-                const cash = tx.cash?.[0];
-                const what = cash
-                  ? `the ${formatMoney(cash.amount)} transfer`
-                  : "a transaction";
-                toast(`${nameOf(room, reverser)} undid ${what}`);
-                playSound("revert");
-              }
-            }
           }
         }
       }

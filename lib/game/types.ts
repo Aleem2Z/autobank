@@ -50,7 +50,7 @@ export type ReasonPreset =
 
 export type TxKind = "p2p" | "pay-bank" | "request-bank" | "asset-move" | "split";
 
-export type TxStatus = "pending" | "confirmed" | "rejected" | "reversed";
+export type TxStatus = "pending" | "confirmed" | "rejected";
 
 export interface AssetMovement {
   defId: string;
@@ -85,7 +85,6 @@ export interface Transaction {
   rejectedBy?: string;
   objectionDeadline?: number;
   status: TxStatus;
-  reversedBy?: string;
 }
 
 export interface Partnership {

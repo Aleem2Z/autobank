@@ -10,8 +10,7 @@ A multiplayer wallet for tabletop Monopoly that replaces the human banker. Frien
 - Bank withdrawals (e.g. "Pass GO, +$200") show on every other player's phone with a 10-second objection window — auto-confirms if no one objects
 - Public ledger of every transaction visible to everyone
 - Buy property: pay bank → property card moves into your wallet atomically
-- Split a windfall to up to 3 other players in one tap
-- Undo your last action (any party involved)
+- Split a windfall to up to 3 other players in one tap (set per-recipient percentages)
 - Two rule modes: **Our rules** (free transfers, gifts, loans, splits) and **Official** (trades only — gifts/splits/loans blocked at the API)
 
 **Doesn't:**

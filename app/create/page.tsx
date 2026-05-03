@@ -4,12 +4,14 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
+import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { api } from "@/lib/client/api";
 import type { Mode } from "@/lib/game/types";
 import { STARTING_BALANCE_DEFAULT } from "@/lib/game/monopoly";
+import { cn } from "@/lib/utils";
 
 export default function CreatePage() {
   const router = useRouter();
@@ -51,134 +53,144 @@ export default function CreatePage() {
   }
 
   return (
-    <main className="flex flex-1 flex-col items-center justify-center p-6 animate-in fade-in slide-in-from-bottom-3 duration-500">
-      <form
-        onSubmit={onSubmit}
-        className="w-full max-w-md flex flex-col gap-5 rounded-3xl p-6 bg-card border border-border/60 shadow-[0_20px_60px_-32px_rgba(20,80,50,0.30)]"
-      >
-        <header className="flex flex-col gap-1.5">
-          <span className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground font-medium">
+    <main className="flex flex-1 flex-col animate-in fade-in duration-500">
+      <header className="fixed top-0 inset-x-0 z-50 top-bar-bg">
+        <div className="flex justify-between items-center px-6 py-4 max-w-2xl mx-auto">
+          <Link
+            href="/"
+            aria-label="Back to home"
+            className="text-brand hover:opacity-80 active:scale-95 transition-all p-2 -ml-2 rounded-full"
+          >
+            <ArrowLeft className="size-5" strokeWidth={2.5} />
+          </Link>
+          <h1 className="text-xl font-black tracking-tighter text-foreground">
+            Autobank
+          </h1>
+          <span className="size-9" aria-hidden />
+        </div>
+      </header>
+
+      <div className="flex-1 w-full max-w-md mx-auto pt-24 px-5 pb-10 flex flex-col gap-5">
+        <section className="flex flex-col gap-1.5 pt-2 pb-2">
+          <span className="text-[11px] uppercase tracking-[0.06em] font-semibold text-on-surface-variant">
             Step 1 of 1
           </span>
-          <h1
-            className="text-3xl font-black tracking-[-0.02em] leading-tight"
-            style={{ fontFamily: "var(--font-serif)" }}
-          >
+          <h2 className="text-[28px] leading-[34px] font-bold tracking-tight text-foreground">
             Create a room
-          </h1>
-          <p className="text-sm text-muted-foreground leading-relaxed">
+          </h2>
+          <p className="text-sm text-on-surface-variant leading-relaxed">
             You&apos;ll be the admin. Share the code &amp; passcode with the
             other players.
           </p>
-        </header>
+        </section>
 
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="name" className="text-[13px] font-medium">
-            Your name
-          </Label>
-          <Input
-            id="name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Aleem"
-            autoComplete="off"
-            maxLength={40}
-            className="h-12 text-base rounded-xl"
-          />
-        </div>
+        <form
+          onSubmit={onSubmit}
+          className="flex flex-col gap-5 rounded-[2rem] p-6 bg-surface-lowest shadow-soft"
+        >
+          <Field id="name" label="Your name">
+            <Input
+              id="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Aleem"
+              autoComplete="off"
+              maxLength={40}
+              className="h-12 text-base rounded-xl bg-surface border-transparent focus-visible:bg-surface-lowest focus-visible:border-brand"
+            />
+          </Field>
 
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="instance-passcode" className="text-[13px] font-medium">
-            Admin passcode
-          </Label>
-          <Input
-            id="instance-passcode"
-            type="password"
-            value={instancePasscode}
-            onChange={(e) => setInstancePasscode(e.target.value)}
-            placeholder="Required to create rooms on this instance"
-            autoComplete="off"
-            maxLength={128}
-            className="h-12 text-base rounded-xl"
-          />
-          <p className="text-xs text-muted-foreground">
-            Leave blank if your instance doesn&apos;t have one set.
-          </p>
-        </div>
+          <Field id="instance-passcode" label="Admin passcode" hint="Leave blank if your instance doesn't have one set.">
+            <Input
+              id="instance-passcode"
+              type="password"
+              value={instancePasscode}
+              onChange={(e) => setInstancePasscode(e.target.value)}
+              placeholder="Required to create rooms on this instance"
+              autoComplete="off"
+              maxLength={128}
+              className="h-12 text-base rounded-xl bg-surface border-transparent focus-visible:bg-surface-lowest focus-visible:border-brand"
+            />
+          </Field>
 
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="passcode" className="text-[13px] font-medium">
-            Room passcode
-          </Label>
-          <Input
-            id="passcode"
-            value={passcode}
-            onChange={(e) => setPasscode(e.target.value)}
-            placeholder="anything memorable"
-            autoComplete="off"
-            maxLength={64}
-            className="h-12 text-base rounded-xl"
-          />
-        </div>
+          <Field id="passcode" label="Room passcode">
+            <Input
+              id="passcode"
+              value={passcode}
+              onChange={(e) => setPasscode(e.target.value)}
+              placeholder="anything memorable"
+              autoComplete="off"
+              maxLength={64}
+              className="h-12 text-base rounded-xl bg-surface border-transparent focus-visible:bg-surface-lowest focus-visible:border-brand"
+            />
+          </Field>
 
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="balance" className="text-[13px] font-medium">
-            Starting balance
-          </Label>
-          <Input
-            id="balance"
-            type="number"
-            value={startingBalance}
-            onChange={(e) => setStartingBalance(e.target.value)}
-            min={1}
-            className="h-12 text-base rounded-xl tabular-nums"
-          />
-        </div>
+          <Field id="balance" label="Starting balance">
+            <Input
+              id="balance"
+              type="number"
+              value={startingBalance}
+              onChange={(e) => setStartingBalance(e.target.value)}
+              min={1}
+              className="h-12 text-base rounded-xl bg-surface border-transparent focus-visible:bg-surface-lowest focus-visible:border-brand tabular-nums"
+            />
+          </Field>
 
-        <div className="flex flex-col gap-2">
-          <Label className="text-[13px] font-medium">Mode</Label>
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant={mode === "house" ? "default" : "outline"}
-              onClick={() => setMode("house")}
-              className="flex-1 h-11 rounded-xl"
-            >
-              House rules
-            </Button>
-            <Button
-              type="button"
-              variant={mode === "official" ? "default" : "outline"}
-              onClick={() => setMode("official")}
-              className="flex-1 h-11 rounded-xl"
-            >
-              Official
-            </Button>
+          <div className="flex flex-col gap-2">
+            <Label className="text-[13px] font-semibold">Mode</Label>
+            <div className="grid grid-cols-2 gap-2 bg-surface rounded-full p-1">
+              {(["house", "official"] as Mode[]).map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setMode(m)}
+                  className={cn(
+                    "h-10 rounded-full text-sm font-semibold transition-all active:scale-95",
+                    mode === m
+                      ? "bg-surface-lowest text-foreground shadow-card-soft"
+                      : "text-on-surface-variant hover:text-foreground",
+                  )}
+                >
+                  {m === "house" ? "House rules" : "Official"}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-on-surface-variant">
+              Official mode disables splits, gifts, and loans.
+            </p>
           </div>
-          <p className="text-xs text-muted-foreground">
-            Official mode disables splits, gifts, and loans.
-          </p>
-        </div>
 
-        <div className="flex gap-2 pt-1">
-          <Button
-            type="button"
-            variant="outline"
-            nativeButton={false}
-            render={<Link href="/" />}
-            className="flex-1 h-12 rounded-xl"
-          >
-            Back
-          </Button>
           <Button
             type="submit"
             disabled={submitting}
-            className="flex-1 h-12 rounded-xl text-base font-semibold"
+            className="h-14 rounded-full text-base font-semibold bg-brand text-white shadow-ambient-brand hover:bg-brand/90 active:scale-95"
           >
             {submitting ? "Creating..." : "Create room"}
           </Button>
-        </div>
-      </form>
+        </form>
+      </div>
     </main>
+  );
+}
+
+function Field({
+  id,
+  label,
+  hint,
+  children,
+}: {
+  id: string;
+  label: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Label htmlFor={id} className="text-[13px] font-semibold">
+        {label}
+      </Label>
+      {children}
+      {hint && <p className="text-xs text-on-surface-variant">{hint}</p>}
+    </div>
   );
 }

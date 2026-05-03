@@ -19,8 +19,7 @@ export type SoundName =
   | "success"
   | "error"
   | "coins"
-  | "join"
-  | "revert";
+  | "join";
 
 const STORAGE_KEY = "autobank-muted";
 const PEAK_GAIN = 0.18;
@@ -246,10 +245,6 @@ export function playSound(name: SoundName): void {
       return;
     case "join":
       warmTone(ctx);
-      return;
-    case "revert":
-      // Reverse-arpeggio: G5 - E5 - C5
-      arpeggio(ctx, [783.99, 659.25, 523.25], 0.06);
       return;
   }
 }
