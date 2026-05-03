@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { Volume2, VolumeX } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import {
   isMuted,
   setMuted,
@@ -41,19 +40,19 @@ export function SoundToggle() {
   }
 
   return (
-    <Button
-      size="icon-sm"
-      variant="ghost"
+    <button
+      type="button"
       onClick={toggle}
       aria-label={muted ? "Unmute notifications" : "Mute notifications"}
       aria-pressed={muted}
       title={muted ? "Notifications muted" : "Notifications on"}
+      className="size-9 rounded-full inline-flex items-center justify-center text-on-surface-variant hover:bg-surface active:scale-90 transition-all"
     >
       {muted ? (
-        <VolumeX className="size-4 text-muted-foreground" />
+        <VolumeX className="size-4" />
       ) : (
         <Volume2 className="size-4" />
       )}
-    </Button>
+    </button>
   );
 }

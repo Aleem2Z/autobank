@@ -35,8 +35,6 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
 }
 
 export interface CreateRoomInput {
-  passcode: string;
-  adminName: string;
   startingBalance?: number;
   mode?: Mode;
   scarcityHouses?: number;
@@ -46,10 +44,20 @@ export interface CreateRoomInput {
 }
 
 export interface JoinRoomInput {
-  passcode: string;
   name: string;
   /** Optional hex color from `PLAYER_COLORS`. Server falls back to auto-assignment. */
   color?: string;
+}
+
+export interface RoomPreview {
+  exists: true;
+  code: string;
+  mode: Mode;
+  startingBalance: number;
+  playerCount: number;
+  usedColors: string[];
+  usedNames: string[];
+  canClaimAdmin: boolean;
 }
 
 export interface ProposeInput {
@@ -68,16 +76,22 @@ export interface RoomState {
 
 export const api = {
   createRoom(input: CreateRoomInput) {
-    return request<{ code: string; playerId: string }>("/api/rooms", {
+    return request<{ code: string }>("/api/rooms", {
       method: "POST",
       body: JSON.stringify(input),
     });
   },
   joinRoom(code: string, input: JoinRoomInput) {
-    return request<{ code: string; playerId: string }>(`/api/rooms/${code}/join`, {
-      method: "POST",
-      body: JSON.stringify(input),
-    });
+    return request<{ code: string; playerId: string; isAdmin: boolean }>(
+      `/api/rooms/${code}/join`,
+      {
+        method: "POST",
+        body: JSON.stringify(input),
+      },
+    );
+  },
+  previewRoom(code: string) {
+    return request<RoomPreview>(`/api/rooms/${code}/preview`);
   },
   getRoom(code: string) {
     return request<RoomState>(`/api/rooms/${code}`);

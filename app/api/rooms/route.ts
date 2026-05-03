@@ -1,22 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { nanoid } from "nanoid";
 import crypto from "node:crypto";
 import { store } from "@/lib/store";
 import { generateRoomCode } from "@/lib/game/codes";
-import { hashPasscode, setSessionCookie } from "@/lib/session";
-import { MONOPOLY_US, PLAYER_COLORS, STARTING_BALANCE_DEFAULT } from "@/lib/game/monopoly";
+import { setAdminClaimCookie } from "@/lib/session";
+import { MONOPOLY_US, STARTING_BALANCE_DEFAULT } from "@/lib/game/monopoly";
 import type { Room } from "@/lib/game/types";
 
 export const runtime = "nodejs";
 
 const CreateBody = z.object({
-  passcode: z.string().min(1).max(64),
-  adminName: z.string().min(1).max(40),
   startingBalance: z.number().int().positive().optional(),
   mode: z.enum(["official", "house"]).optional(),
   scarcityHouses: z.number().int().min(0).max(64).optional(),
   scarcityHotels: z.number().int().min(0).max(32).optional(),
+  /** Instance-level admin passcode that gates room creation. */
   instancePasscode: z.string().max(128).optional(),
 });
 
@@ -49,45 +47,42 @@ function instancePasscodeOk(supplied: string | undefined): boolean {
 
 export async function POST(req: NextRequest) {
   const body = CreateBody.safeParse(await req.json());
-  if (!body.success) return NextResponse.json({ error: body.error.message }, { status: 400 });
+  if (!body.success)
+    return NextResponse.json({ error: body.error.message }, { status: 400 });
 
   if (!instancePasscodeOk(body.data.instancePasscode)) {
-    return NextResponse.json({ error: "Invalid admin passcode" }, { status: 401 });
+    return NextResponse.json(
+      { error: "Invalid admin passcode" },
+      { status: 401 },
+    );
   }
 
   let code = generateRoomCode();
   while (await store.getRoom(code)) code = generateRoomCode();
 
-  const adminId = nanoid(8);
+  // Empty room — the creator becomes the admin when they complete the
+  // join overlay (name + color) on the room page itself. The admin-claim
+  // cookie below tells that join request "you may claim admin status".
   const room: Room = {
     code,
-    passcodeHash: hashPasscode(body.data.passcode),
+    passcodeHash: "",
     mode: body.data.mode ?? "house",
     preset: "monopoly-us",
     startingBalance: body.data.startingBalance ?? STARTING_BALANCE_DEFAULT,
     bankCash: 0,
     bankAssets: MONOPOLY_US.map((a) => ({ defId: a.id })),
-    scarcity: { houses: body.data.scarcityHouses, hotels: body.data.scarcityHotels },
-    players: [
-      {
-        id: adminId,
-        name: body.data.adminName,
-        color: PLAYER_COLORS[0],
-        cash: body.data.startingBalance ?? STARTING_BALANCE_DEFAULT,
-        assets: [],
-        isAdmin: true,
-        joinedAt: Date.now(),
-        online: true,
-      },
-    ],
+    scarcity: {
+      houses: body.data.scarcityHouses,
+      hotels: body.data.scarcityHotels,
+    },
+    players: [],
     partnerships: [],
     transactions: [],
     createdAt: Date.now(),
   };
 
   await store.saveRoom(room);
-  await setSessionCookie({ roomCode: code, playerId: adminId });
-  await store.publish(code, { type: "state", room });
+  await setAdminClaimCookie(code);
 
-  return NextResponse.json({ code, playerId: adminId });
+  return NextResponse.json({ code });
 }

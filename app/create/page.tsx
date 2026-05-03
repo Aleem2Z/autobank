@@ -15,8 +15,6 @@ import { cn } from "@/lib/utils";
 
 export default function CreatePage() {
   const router = useRouter();
-  const [name, setName] = useState("");
-  const [passcode, setPasscode] = useState("");
   const [instancePasscode, setInstancePasscode] = useState("");
   const [startingBalance, setStartingBalance] = useState<string>(
     String(STARTING_BALANCE_DEFAULT),
@@ -27,10 +25,6 @@ export default function CreatePage() {
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (submitting) return;
-    if (!name.trim() || !passcode.trim()) {
-      toast.error("Name and passcode are required.");
-      return;
-    }
     const balance = Number(startingBalance);
     if (!Number.isFinite(balance) || balance <= 0) {
       toast.error("Starting balance must be a positive number.");
@@ -39,8 +33,6 @@ export default function CreatePage() {
     setSubmitting(true);
     try {
       const { code } = await api.createRoom({
-        adminName: name.trim(),
-        passcode: passcode.trim(),
         startingBalance: Math.floor(balance),
         mode,
         instancePasscode: instancePasscode.trim() || undefined,
@@ -73,14 +65,15 @@ export default function CreatePage() {
       <div className="flex-1 w-full max-w-md mx-auto pt-24 px-5 pb-10 flex flex-col gap-5">
         <section className="flex flex-col gap-1.5 pt-2 pb-2">
           <span className="text-[11px] uppercase tracking-[0.06em] font-semibold text-on-surface-variant">
-            Step 1 of 1
+            New room
           </span>
           <h2 className="text-[28px] leading-[34px] font-bold tracking-tight text-foreground">
             Create a room
           </h2>
           <p className="text-sm text-on-surface-variant leading-relaxed">
-            You&apos;ll be the admin. Share the code &amp; passcode with the
-            other players.
+            We&apos;ll generate a room code. Share it with the table — anyone
+            with the code can join. You&apos;ll pick your name &amp; color on
+            the next screen.
           </p>
         </section>
 
@@ -88,39 +81,19 @@ export default function CreatePage() {
           onSubmit={onSubmit}
           className="flex flex-col gap-5 rounded-[2rem] p-6 bg-surface-lowest shadow-soft"
         >
-          <Field id="name" label="Your name">
-            <Input
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Aleem"
-              autoComplete="off"
-              maxLength={40}
-              className="h-12 text-base rounded-xl bg-surface border-transparent focus-visible:bg-surface-lowest focus-visible:border-brand"
-            />
-          </Field>
-
-          <Field id="instance-passcode" label="Admin passcode" hint="Leave blank if your instance doesn't have one set.">
+          <Field
+            id="instance-passcode"
+            label="Admin passcode"
+            hint="Set by the host of this Autobank instance. Leave blank if none."
+          >
             <Input
               id="instance-passcode"
               type="password"
               value={instancePasscode}
               onChange={(e) => setInstancePasscode(e.target.value)}
-              placeholder="Required to create rooms on this instance"
+              placeholder="••••••••"
               autoComplete="off"
               maxLength={128}
-              className="h-12 text-base rounded-xl bg-surface border-transparent focus-visible:bg-surface-lowest focus-visible:border-brand"
-            />
-          </Field>
-
-          <Field id="passcode" label="Room passcode">
-            <Input
-              id="passcode"
-              value={passcode}
-              onChange={(e) => setPasscode(e.target.value)}
-              placeholder="anything memorable"
-              autoComplete="off"
-              maxLength={64}
               className="h-12 text-base rounded-xl bg-surface border-transparent focus-visible:bg-surface-lowest focus-visible:border-brand"
             />
           </Field>
@@ -165,7 +138,7 @@ export default function CreatePage() {
             disabled={submitting}
             className="h-14 rounded-full text-base font-semibold bg-brand text-white shadow-ambient-brand hover:bg-brand/90 active:scale-95"
           >
-            {submitting ? "Creating..." : "Create room"}
+            {submitting ? "Generating room…" : "Create room"}
           </Button>
         </form>
       </div>

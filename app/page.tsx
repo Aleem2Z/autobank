@@ -1,16 +1,34 @@
+"use client";
+
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { ArrowRight, LogIn, Plus } from "lucide-react";
+import { isValidCode, ROOM_CODE_LENGTH } from "@/lib/game/codes";
+import { cn } from "@/lib/utils";
 
 export default function Home() {
+  const router = useRouter();
+  const [code, setCode] = useState("");
+  const [err, setErr] = useState<string | null>(null);
+
+  const upper = code.toUpperCase();
+  const ready = isValidCode(upper);
+
+  function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!ready) {
+      setErr(`Codes are ${ROOM_CODE_LENGTH} characters.`);
+      return;
+    }
+    router.push(`/room/${upper}`);
+  }
+
   return (
     <main className="flex flex-1 flex-col animate-in fade-in duration-500">
-      {/* Top app bar — fixed */}
       <header className="fixed top-0 inset-x-0 z-50 top-bar-bg">
         <div className="flex justify-between items-center px-6 py-4 max-w-2xl mx-auto">
-          <span
-            className="size-9"
-            aria-hidden
-          />
+          <span className="size-9" aria-hidden />
           <h1 className="text-xl font-black tracking-tighter text-foreground">
             Autobank
           </h1>
@@ -18,9 +36,7 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Canvas */}
       <div className="flex-1 w-full max-w-2xl mx-auto pt-24 px-5 pb-10 flex flex-col gap-6">
-        {/* Hero welcome */}
         <section className="flex flex-col gap-2 py-6">
           <h2 className="text-[36px] leading-[44px] font-bold tracking-tight text-foreground">
             Ready to play?
@@ -30,7 +46,6 @@ export default function Home() {
           </p>
         </section>
 
-        {/* Primary actions bento */}
         <section className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {/* Create */}
           <Link
@@ -50,13 +65,13 @@ export default function Home() {
             </div>
           </Link>
 
-          {/* Join */}
-          <Link
-            href="/join"
+          {/* Join — working code input */}
+          <form
+            onSubmit={submit}
             aria-label="Join an existing room"
-            className="group relative overflow-hidden bg-surface-lowest text-foreground rounded-[2rem] p-6 aspect-square flex flex-col justify-between items-start shadow-ambient sink-on-press border-2 border-transparent hover:border-brand/20"
+            className="group relative overflow-hidden bg-surface-lowest text-foreground rounded-[2rem] p-6 aspect-square flex flex-col justify-between items-start shadow-ambient sink-on-press border-2 border-transparent focus-within:border-brand/30"
           >
-            <div className="absolute bottom-0 right-0 size-40 bg-surface opacity-50 rounded-full -mr-12 -mb-12 transition-transform group-hover:scale-110 duration-500" />
+            <div className="absolute bottom-0 right-0 size-40 bg-surface opacity-50 rounded-full -mr-12 -mb-12 pointer-events-none" />
             <div className="bg-brand/10 text-brand p-4 rounded-full">
               <LogIn className="size-8" strokeWidth={2.5} />
             </div>
@@ -65,25 +80,59 @@ export default function Home() {
                 Join Room
               </h3>
               <p className="text-sm text-on-surface-variant mb-3">
-                Enter a code to connect
+                Enter a {ROOM_CODE_LENGTH}-character code
               </p>
-              <div className="flex bg-surface rounded-2xl p-2 items-center w-full">
-                <span className="text-[11px] uppercase tracking-[0.06em] font-semibold text-outline px-2">
+              <div
+                className={cn(
+                  "flex bg-surface rounded-2xl p-2 items-center w-full transition-all",
+                  err && "ring-2 ring-destructive/30",
+                )}
+              >
+                <span className="text-[11px] uppercase tracking-[0.06em] font-semibold text-outline px-2 shrink-0">
                   Code
                 </span>
-                <div className="h-5 w-px bg-outline-variant mx-2" />
-                <span className="font-mono text-base text-on-surface-variant opacity-50 flex-1 tracking-[0.3em]">
-                  ____
-                </span>
-                <span className="bg-brand text-white p-1.5 rounded-full inline-flex items-center justify-center">
+                <div className="h-5 w-px bg-outline-variant mx-2 shrink-0" />
+                <input
+                  type="text"
+                  value={code}
+                  onChange={(e) => {
+                    setCode(
+                      e.target.value
+                        .toUpperCase()
+                        .replace(/[^A-HJ-NP-Z2-9]/g, "")
+                        .slice(0, ROOM_CODE_LENGTH),
+                    );
+                    setErr(null);
+                  }}
+                  placeholder={"_".repeat(ROOM_CODE_LENGTH)}
+                  aria-label="Room code"
+                  autoCapitalize="characters"
+                  autoComplete="off"
+                  spellCheck={false}
+                  inputMode="text"
+                  className="font-mono text-base flex-1 min-w-0 bg-transparent outline-none tracking-[0.18em] text-foreground placeholder:text-on-surface-variant placeholder:opacity-60"
+                />
+                <button
+                  type="submit"
+                  disabled={!ready}
+                  aria-label="Go to room"
+                  className={cn(
+                    "p-1.5 rounded-full inline-flex items-center justify-center transition-all shrink-0 active:scale-95",
+                    ready
+                      ? "bg-brand text-white"
+                      : "bg-outline-variant text-white/70 cursor-not-allowed",
+                  )}
+                >
                   <ArrowRight className="size-4" strokeWidth={2.5} />
-                </span>
+                </button>
               </div>
+              {err && (
+                <p className="text-[11px] text-destructive mt-1.5">{err}</p>
+              )}
             </div>
-          </Link>
+          </form>
         </section>
 
-        {/* Trust pills */}
         <ul className="flex flex-wrap items-center justify-center gap-2 text-xs text-on-surface-variant pt-2">
           {["No accounts", "Cheat-proof", "Plays nice"].map((feature) => (
             <li

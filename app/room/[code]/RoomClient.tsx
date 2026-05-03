@@ -4,12 +4,15 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AnimatePresence, motion } from "framer-motion";
-import { Check, Copy, Home } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Check, Copy, Grid3x3 } from "lucide-react";
 import { Wallet } from "@/components/Wallet";
 import { Ledger } from "@/components/Ledger";
 import { PendingTransaction } from "@/components/PendingTransaction";
-import { ActionBar } from "@/components/ActionBar";
+import { BottomNav, type PaymentAction } from "@/components/BottomNav";
+import { TransferSheet } from "@/components/TransferSheet";
+import { SplitSheet } from "@/components/SplitSheet";
+import { TradeSheet } from "@/components/TradeSheet";
+import { JoinOverlay } from "@/components/JoinOverlay";
 import { SoundToggle } from "@/components/SoundToggle";
 import { BalanceTicker } from "@/components/animations/BalanceTicker";
 import { useRoom } from "@/lib/client/useRoom";
@@ -20,23 +23,15 @@ import { cn } from "@/lib/utils";
 function pendingForYou(txs: Transaction[], you: string): Transaction[] {
   return txs.filter((tx) => {
     if (tx.status !== "pending") return false;
-    // Any tx with an objection window — anyone other than the proposer
-    // sees the prompt with an Object button until the window expires.
     if (tx.objectionDeadline) {
       return tx.proposedBy !== you;
     }
-    // Otherwise: shown only to the parties who must confirm (currently
-    // just trades — both partners).
     return (
       tx.requiresConfirmFrom.includes(you) && !tx.confirmedBy.includes(you)
     );
   });
 }
 
-/**
- * Find the most recent confirmed transaction and return the set of player ids
- * involved in it (for highlighting last-tx targets in the player chip row).
- */
 function lastTxParticipants(room: Room): Set<string> {
   const last = [...room.transactions]
     .filter((t) => t.status === "confirmed")
@@ -55,10 +50,37 @@ function lastTxParticipants(room: Room): Set<string> {
   return ids;
 }
 
+type Sheet =
+  | null
+  | {
+      kind: "transfer";
+      transferKind: "p2p" | "pay-bank" | "request-bank";
+      allowKindToggle?: boolean;
+    }
+  | { kind: "split" }
+  | { kind: "trade" };
+
+function sheetForAction(a: PaymentAction): Sheet {
+  switch (a) {
+    case "pay":
+      // Pay opens with Player selected by default but lets the user
+      // switch to Bank (which also exposes the buy-property flow).
+      return { kind: "transfer", transferKind: "p2p", allowKindToggle: true };
+    case "request":
+      return { kind: "transfer", transferKind: "request-bank" };
+    case "trade":
+      return { kind: "trade" };
+    case "split":
+      return { kind: "split" };
+  }
+}
+
 export default function RoomClient({ code }: { code: string }) {
-  const { room, you, status, error } = useRoom(code);
+  const { room, you, status, error, refresh } = useRoom(code);
   useNotifications(room, you);
   const [copied, setCopied] = useState(false);
+  const [openSheet, setOpenSheet] = useState<Sheet>(null);
+  const closeSheet = () => setOpenSheet(null);
 
   const highlightedIds = useMemo(
     () => (room ? lastTxParticipants(room) : new Set<string>()),
@@ -67,41 +89,33 @@ export default function RoomClient({ code }: { code: string }) {
 
   if (status === "loading") {
     return (
-      <main className="flex flex-1 items-center justify-center p-6 text-muted-foreground">
+      <main className="flex flex-1 items-center justify-center p-6 text-on-surface-variant">
         Loading room {code}...
       </main>
     );
   }
 
+  if (status === "needs-join") {
+    return <JoinOverlay code={code} onJoined={refresh} />;
+  }
+
   if (status === "error" || !room || !you) {
     return (
       <main className="flex flex-1 items-center justify-center p-6">
-        <div className="border border-border/60 rounded-2xl p-6 bg-card max-w-sm w-full text-center flex flex-col gap-3">
-          <h1
-            className="text-xl font-bold tracking-tight"
-            style={{ fontFamily: "var(--font-serif)" }}
-          >
+        <div className="bg-surface-lowest rounded-[2rem] p-6 max-w-sm w-full text-center flex flex-col gap-3 shadow-soft">
+          <h1 className="text-xl font-bold tracking-tight text-foreground">
             Cannot load room
           </h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-on-surface-variant">
             {error ?? "You may not be in this room."}
           </p>
-          <div className="flex gap-2 pt-1">
-            <Button
-              variant="outline"
-              nativeButton={false}
-              render={<Link href={`/join?code=${code}`} />}
-              className="flex-1 h-11 rounded-xl"
+          <div className="flex pt-1">
+            <Link
+              href="/"
+              className="flex-1 h-12 rounded-full inline-flex items-center justify-center text-sm font-semibold bg-brand text-white active:scale-95 transition-transform"
             >
-              Join
-            </Button>
-            <Button
-              nativeButton={false}
-              render={<Link href="/" />}
-              className="flex-1 h-11 rounded-xl"
-            >
-              Home
-            </Button>
+              Back to home
+            </Link>
           </div>
         </div>
       </main>
@@ -111,7 +125,7 @@ export default function RoomClient({ code }: { code: string }) {
   const me = room.players.find((p) => p.id === you);
   if (!me) {
     return (
-      <main className="flex flex-1 items-center justify-center p-6 text-muted-foreground">
+      <main className="flex flex-1 items-center justify-center p-6 text-on-surface-variant">
         Player not found in room.
       </main>
     );
@@ -131,64 +145,47 @@ export default function RoomClient({ code }: { code: string }) {
     }
   }
 
+  function handleAction(a: PaymentAction) {
+    setOpenSheet(sheetForAction(a));
+  }
+
   return (
-    <main className="flex flex-1 flex-col animate-in fade-in duration-500">
-      <div className="flex-1 max-w-2xl w-full mx-auto px-3 pt-3 pb-3 flex flex-col gap-3">
-        {/* Top bar — tight, clean, premium */}
-        <header className="flex items-center justify-between gap-2 rounded-2xl px-3 py-2 bg-card border border-border/60">
+    <main className="flex flex-1 flex-col animate-in fade-in duration-300">
+      {/* Top app bar — fixed */}
+      <header className="fixed top-0 inset-x-0 z-40 top-bar-bg">
+        <div className="flex justify-between items-center px-6 py-4 max-w-2xl mx-auto">
           <Link
             href="/"
-            className="flex items-center gap-2 leading-tight"
-            aria-label="Go to home"
+            aria-label="Leave room"
+            className="text-brand p-2 -ml-2 rounded-full hover:opacity-80 active:scale-95 transition-all"
           >
-            <span
-              className="text-base font-black tracking-[-0.02em] flex items-baseline"
-              style={{ fontFamily: "var(--font-serif)" }}
-            >
-              Autobank
-              <span
-                className="inline-block size-1.5 rounded-full bg-[var(--mono-green)] ml-1 translate-y-[-0.06em]"
-                aria-hidden
-              />
-            </span>
-            <span className="text-[9px] uppercase tracking-[0.25em] text-muted-foreground/80 hidden sm:inline">
-              {room.mode}
-            </span>
+            <Grid3x3 className="size-5" strokeWidth={2.5} />
           </Link>
+          <h1 className="text-xl font-black tracking-tighter text-foreground">
+            Autobank
+          </h1>
           <div className="flex items-center gap-1">
+            <SoundToggle />
             <button
               type="button"
               onClick={copyCode}
               aria-label="Copy room code"
-              className="group flex items-center gap-1.5 px-2 py-1 rounded-lg hover:bg-muted/60 active:scale-95 transition-all"
+              className="px-3 py-1.5 bg-brand/10 rounded-full text-brand font-bold text-sm tracking-tight hover:bg-brand/15 active:scale-95 transition-all flex items-center gap-1.5"
             >
-              <span className="font-mono text-[15px] font-bold tracking-[0.18em] text-foreground">
-                {room.code}
-              </span>
+              <span className="font-mono">#{room.code}</span>
               {copied ? (
-                <Check className="size-3.5 text-[var(--mono-green)]" />
+                <Check className="size-3.5" />
               ) : (
-                <Copy className="size-3.5 text-muted-foreground group-hover:text-foreground" />
+                <Copy className="size-3.5 opacity-70" />
               )}
             </button>
-            <SoundToggle />
-            <Button
-              size="icon-sm"
-              variant="ghost"
-              nativeButton={false}
-              render={<Link href="/" />}
-              aria-label="Leave room"
-              title="Leave"
-            >
-              <Home className="size-4" />
-            </Button>
           </div>
-        </header>
+        </div>
+      </header>
 
-        {/* Wallet (hero) */}
-        <Wallet player={me} />
-
-        {/* Pending — high priority */}
+      {/* Canvas */}
+      <div className="flex-1 w-full max-w-2xl mx-auto pt-[88px] pb-[120px] px-5 flex flex-col gap-6">
+        {/* Pending — high priority, above the wallet hero */}
         <AnimatePresence initial={false}>
           {pending.length > 0 && (
             <motion.section
@@ -200,9 +197,9 @@ export default function RoomClient({ code }: { code: string }) {
               transition={{ duration: 0.25 }}
               className="flex flex-col gap-2"
             >
-              <h2 className="text-[10px] uppercase tracking-[0.28em] font-medium text-muted-foreground flex items-center gap-2 px-1">
+              <h2 className="text-[11px] font-semibold uppercase tracking-[0.06em] text-on-surface-variant flex items-center gap-2 px-1">
                 Pending action
-                <span className="text-[10px] tracking-normal px-1.5 py-0.5 rounded-full bg-accent/25 text-accent-foreground">
+                <span className="text-[10px] tracking-normal px-2 py-0.5 rounded-full bg-sent/20 text-sent">
                   {pending.length}
                 </span>
               </h2>
@@ -215,42 +212,62 @@ export default function RoomClient({ code }: { code: string }) {
           )}
         </AnimatePresence>
 
+        {/* Wallet */}
+        <Wallet player={me} />
+
         {/* Other players */}
-        <section className="rounded-2xl bg-card border border-border/60 px-3 pt-3 pb-2 flex flex-col gap-2">
-          <header className="flex items-baseline justify-between px-1">
-            <h2 className="text-[10px] uppercase tracking-[0.28em] font-medium text-muted-foreground">
-              Players
-            </h2>
-            <span className="text-[11px] tabular-nums text-muted-foreground">
-              {room.players.length} total
-            </span>
-          </header>
-          {others.length === 0 ? (
-            <p className="text-sm text-muted-foreground italic px-1 pb-1">
-              No other players have joined yet. Share code{" "}
-              <span className="font-mono font-semibold tracking-widest text-foreground">
-                {room.code}
+        {others.length > 0 && (
+          <section className="rounded-[2rem] bg-surface-lowest shadow-soft px-4 pt-4 pb-3 flex flex-col gap-3">
+            <header className="flex items-baseline justify-between px-1">
+              <h2 className="text-xl font-semibold tracking-tight text-foreground">
+                Players
+              </h2>
+              <span className="text-sm tabular-nums text-on-surface-variant">
+                {room.players.length} total
               </span>
-              .
-            </p>
-          ) : (
-            <div className="flex gap-2 overflow-x-auto -mx-2 px-2 pb-1 snap-x">
+            </header>
+            <div className="flex gap-3 overflow-x-auto hide-scrollbar -mx-2 px-2 pb-1 snap-x">
               {others.map((p) => (
                 <PlayerChip
                   key={p.id}
                   player={p}
                   highlighted={highlightedIds.has(p.id)}
+                  onPay={() =>
+                    setOpenSheet({ kind: "transfer", transferKind: "p2p" })
+                  }
                 />
               ))}
             </div>
-          )}
-        </section>
+          </section>
+        )}
 
         {/* Ledger */}
         <Ledger room={room} you={you} />
       </div>
 
-      <ActionBar room={room} you={me} />
+      {/* Bottom payment bar */}
+      <BottomNav
+        onAction={handleAction}
+        splitDisabled={room.mode === "official"}
+      />
+
+      {/* Sheets */}
+      {openSheet?.kind === "transfer" && (
+        <TransferSheet
+          initialKind={openSheet.transferKind}
+          allowKindToggle={openSheet.allowKindToggle}
+          room={room}
+          you={me}
+          open
+          onClose={closeSheet}
+        />
+      )}
+      {openSheet?.kind === "split" && (
+        <SplitSheet room={room} you={me} open onClose={closeSheet} />
+      )}
+      {openSheet?.kind === "trade" && (
+        <TradeSheet room={room} you={me} open onClose={closeSheet} />
+      )}
     </main>
   );
 }
@@ -258,21 +275,26 @@ export default function RoomClient({ code }: { code: string }) {
 function PlayerChip({
   player,
   highlighted,
+  onPay,
 }: {
   player: Player;
   highlighted?: boolean;
+  onPay?: () => void;
 }) {
   return (
-    <div
+    <button
+      type="button"
+      onClick={onPay}
       className={cn(
-        "shrink-0 snap-start w-[80px] flex flex-col items-center gap-1.5 rounded-2xl border px-2 py-2.5 transition-all",
+        "shrink-0 snap-start w-[88px] flex flex-col items-center gap-1.5 rounded-2xl border px-2 py-3 transition-all active:scale-95",
         highlighted
-          ? "border-[var(--mono-green)]/50 bg-[color-mix(in_oklch,var(--mono-green)_8%,var(--card))] shadow-[0_4px_18px_-6px_color-mix(in_oklch,var(--mono-green)_40%,transparent)]"
-          : "border-border/60 bg-background",
+          ? "border-brand/50 bg-brand/5 shadow-[0_4px_18px_-6px_rgba(43,181,255,0.45)]"
+          : "border-border bg-surface-lowest hover:bg-surface-low",
       )}
+      aria-label={`Pay ${player.name}`}
     >
       <span
-        className="size-9 rounded-full ring-2 ring-card"
+        className="size-10 rounded-full ring-2 ring-surface-lowest flex items-center justify-center text-white font-bold text-sm"
         style={{
           background: player.color,
           boxShadow: highlighted
@@ -280,9 +302,11 @@ function PlayerChip({
             : "0 1px 0 rgba(0,0,0,0.06), 0 2px 6px -2px rgba(0,0,0,0.18)",
         }}
         aria-hidden
-      />
+      >
+        {player.name.charAt(0).toUpperCase()}
+      </span>
       <span
-        className="truncate text-[12px] font-semibold leading-none w-full text-center"
+        className="truncate text-[12px] font-semibold leading-none w-full text-center text-foreground"
         title={player.name}
       >
         {player.name}
@@ -290,13 +314,13 @@ function PlayerChip({
       <BalanceTicker
         value={player.cash}
         showDelta={false}
-        className="text-[12px] font-bold leading-none text-foreground/85"
+        className="text-[12px] font-bold leading-none text-on-surface-variant tabular-nums"
       />
       {player.isAdmin && (
-        <span className="text-[8px] uppercase tracking-[0.2em] text-muted-foreground">
+        <span className="text-[8px] uppercase tracking-[0.2em] text-outline">
           admin
         </span>
       )}
-    </div>
+    </button>
   );
 }

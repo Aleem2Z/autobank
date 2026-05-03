@@ -26,7 +26,7 @@ function summarize(room: Room, tx: Transaction): React.ReactNode {
         <div className="flex items-baseline justify-between gap-3">
           <div
             className="text-base font-semibold leading-tight"
-            style={{ fontFamily: "var(--font-serif)" }}
+            style={{ fontFamily: "var(--font-sans)" }}
           >
             <span>{nameOf(room, tx.proposedBy)}</span>
             <span className="text-muted-foreground font-normal"> splits </span>
@@ -45,7 +45,7 @@ function summarize(room: Room, tx: Transaction): React.ReactNode {
             </li>
           ))}
         </ul>
-        <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground/80">
+        <div className="text-[11px] uppercase tracking-[0.06em] font-semibold text-outline">
           {reason}
           {tx.reasonNote ? ` · ${tx.reasonNote}` : ""}
         </div>
@@ -81,15 +81,15 @@ function summarize(room: Room, tx: Transaction): React.ReactNode {
       <div className="flex flex-col gap-2.5">
         <div
           className="text-base font-semibold leading-tight"
-          style={{ fontFamily: "var(--font-serif)" }}
+          style={{ fontFamily: "var(--font-sans)" }}
         >
           <span>{proposer}</span>
           <span className="text-muted-foreground font-normal"> ⇄ </span>
           <span>{partner}</span>
         </div>
         <div className="grid grid-cols-2 gap-2 text-[13px]">
-          <div className="flex flex-col gap-0.5 rounded-xl bg-muted/40 px-3 py-2">
-            <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+          <div className="flex flex-col gap-0.5 rounded-2xl bg-surface px-3 py-2">
+            <span className="text-[10px] uppercase tracking-[0.06em] font-semibold text-on-surface-variant">
               {proposer} gives
             </span>
             {proposerGivesCash > 0 && (
@@ -104,8 +104,8 @@ function summarize(room: Room, tx: Transaction): React.ReactNode {
               <span className="italic text-muted-foreground">nothing</span>
             )}
           </div>
-          <div className="flex flex-col gap-0.5 rounded-xl bg-muted/40 px-3 py-2">
-            <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+          <div className="flex flex-col gap-0.5 rounded-2xl bg-surface px-3 py-2">
+            <span className="text-[10px] uppercase tracking-[0.06em] font-semibold text-on-surface-variant">
               {partner} gives
             </span>
             {partnerGivesCash > 0 && (
@@ -121,7 +121,7 @@ function summarize(room: Room, tx: Transaction): React.ReactNode {
             )}
           </div>
         </div>
-        <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground/80">
+        <div className="text-[11px] uppercase tracking-[0.06em] font-semibold text-outline">
           {reason}
           {tx.reasonNote ? ` · ${tx.reasonNote}` : ""}
         </div>
@@ -137,7 +137,7 @@ function summarize(room: Room, tx: Transaction): React.ReactNode {
         <div className="flex items-baseline justify-between gap-3">
           <div
             className="text-base font-semibold leading-tight min-w-0"
-            style={{ fontFamily: "var(--font-serif)" }}
+            style={{ fontFamily: "var(--font-sans)" }}
           >
             <span>{nameOf(room, cash.fromPlayerId)}</span>
             <span className="text-muted-foreground font-normal"> → </span>
@@ -157,7 +157,7 @@ function summarize(room: Room, tx: Transaction): React.ReactNode {
           </span>
         </div>
       )}
-      <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground/80">
+      <div className="text-[11px] uppercase tracking-[0.06em] font-semibold text-outline">
         {reason}
         {tx.reasonNote ? ` · ${tx.reasonNote}` : ""}
       </div>
@@ -199,12 +199,12 @@ export function PendingTransaction({
     : 1;
   const remainingSec = Math.ceil(remainingMs / 1000);
 
-  // Color shifts from accent (gold) → destructive as it approaches expiry
+  // Color shifts from sent (orange) → destructive (red) as it approaches expiry
   const barColor =
     fraction > 0.5
-      ? "var(--accent)"
+      ? "var(--sent)"
       : fraction > 0.2
-        ? "color-mix(in oklch, var(--accent) 50%, var(--destructive))"
+        ? "color-mix(in srgb, var(--sent) 50%, var(--destructive))"
         : "var(--destructive)";
 
   async function decide(decision: "confirm" | "reject" | "object") {
@@ -233,8 +233,8 @@ export function PendingTransaction({
         scale: { duration: 0.55, times: [0, 0.55, 1] },
       }}
       className={cn(
-        "border border-border/60 rounded-2xl bg-card flex flex-col relative overflow-hidden",
-        "shadow-[0_2px_0_rgba(0,0,0,0.04),0_18px_36px_-22px_rgba(20,80,50,0.30)]",
+        "rounded-[2rem] bg-surface-lowest flex flex-col relative overflow-hidden",
+        "shadow-ambient",
       )}
     >
       <div className="flex items-start justify-between gap-3 p-4 pb-3">
@@ -262,7 +262,7 @@ export function PendingTransaction({
             variant="destructive"
             disabled={busy !== null}
             onClick={() => decide("object")}
-            className="flex-1 h-11 rounded-xl text-sm font-semibold"
+            className="flex-1 h-12 rounded-full text-sm font-semibold"
           >
             Object
           </Button>
@@ -273,7 +273,7 @@ export function PendingTransaction({
               variant="destructive"
               disabled={busy !== null}
               onClick={() => decide("reject")}
-              className="flex-1 h-11 rounded-xl text-sm font-semibold"
+              className="flex-1 h-12 rounded-full text-sm font-semibold"
             >
               Reject
             </Button>
@@ -281,7 +281,7 @@ export function PendingTransaction({
               size="lg"
               disabled={busy !== null || !canConfirm}
               onClick={() => decide("confirm")}
-              className="flex-1 h-11 rounded-xl text-sm font-semibold"
+              className="flex-1 h-12 rounded-full text-sm font-semibold"
             >
               Confirm
             </Button>
@@ -291,7 +291,7 @@ export function PendingTransaction({
 
       {/* Full-card-width countdown bar */}
       {isRequestBank && tx.objectionDeadline && (
-        <div className="h-1 bg-muted/60" aria-hidden>
+        <div className="h-1 bg-surface" aria-hidden>
           <motion.div
             initial={false}
             animate={{ width: `${fraction * 100}%` }}

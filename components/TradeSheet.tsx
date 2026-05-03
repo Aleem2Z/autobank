@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { ArrowRight, ArrowLeft, ArrowDownUp } from "lucide-react";
+import { ArrowRight, ArrowLeft, ArrowDownUp, ArrowLeftRight, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -108,41 +108,64 @@ export function TradeSheet({
     <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
       <SheetContent
         side="bottom"
-        className="h-auto max-h-[92vh] sm:max-w-2xl sm:mx-auto sm:rounded-t-2xl overflow-y-auto"
+        className="h-auto max-h-[92vh] sm:max-w-2xl sm:mx-auto overflow-hidden flex flex-col bg-background border-0"
       >
         <SheetHeader>
-          <SheetTitle>Trade</SheetTitle>
-          <SheetDescription>
-            Propose an exchange of cash and properties. Both sides must confirm.
-          </SheetDescription>
+          <div className="flex items-start gap-3">
+            <span className="size-12 rounded-full bg-brand/15 text-brand flex items-center justify-center shrink-0">
+              <ArrowLeftRight className="size-6" strokeWidth={2.5} />
+            </span>
+            <div className="flex flex-col gap-1 min-w-0">
+              <SheetTitle>Trade</SheetTitle>
+              <SheetDescription>
+                Propose an exchange of cash and properties. Both sides must
+                confirm.
+              </SheetDescription>
+            </div>
+          </div>
         </SheetHeader>
 
-        <div className="flex flex-col gap-5 px-4 pb-6">
+        <div className="flex flex-col gap-5 px-5 pb-32 overflow-y-auto">
           {/* Partner picker */}
           <section className="flex flex-col gap-2">
-            <Label>Trade with</Label>
+            <Label className="text-[13px] font-semibold">Trade with</Label>
             {others.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-on-surface-variant">
                 No other players in the room yet.
               </p>
             ) : (
-              <div className="flex flex-wrap gap-2">
-                {others.map((p) => (
-                  <Button
-                    key={p.id}
-                    type="button"
-                    size="sm"
-                    variant={partnerId === p.id ? "default" : "outline"}
-                    onClick={() => setPartnerId(p.id)}
-                  >
-                    <span
-                      className="inline-block size-2.5 rounded-full mr-1.5"
-                      style={{ background: p.color }}
-                      aria-hidden
-                    />
-                    {p.name}
-                  </Button>
-                ))}
+              <div className="flex gap-2 overflow-x-auto hide-scrollbar -mx-1 px-1 pb-1 snap-x">
+                {others.map((p) => {
+                  const on = partnerId === p.id;
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => setPartnerId(p.id)}
+                      className={cn(
+                        "shrink-0 snap-start flex flex-col items-center gap-2 w-[80px] px-2 py-3 rounded-2xl border transition-all active:scale-95",
+                        on
+                          ? "border-brand bg-brand/5 shadow-card-soft"
+                          : "border-border bg-surface-lowest",
+                      )}
+                    >
+                      <span
+                        className="size-10 rounded-full flex items-center justify-center text-white font-bold text-sm"
+                        style={{
+                          background: p.color,
+                          boxShadow: on
+                            ? `0 0 0 2px var(--surface-lowest), 0 0 0 4px ${p.color}`
+                            : "0 1px 2px rgba(0,0,0,0.08)",
+                        }}
+                      >
+                        {p.name.charAt(0).toUpperCase()}
+                      </span>
+                      <span className="text-[12px] font-semibold text-foreground truncate max-w-full">
+                        {p.name}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             )}
           </section>
@@ -152,7 +175,7 @@ export function TradeSheet({
             <TradeSidePanel
               role="give"
               title="You give"
-              accent="text-destructive"
+              tone="sent"
               you={you}
               partner={partner}
               cash={giveCash}
@@ -164,7 +187,7 @@ export function TradeSheet({
             <TradeSidePanel
               role="get"
               title="You get"
-              accent="text-[var(--mono-green)]"
+              tone="received"
               you={you}
               partner={partner}
               cash={getCash}
@@ -176,54 +199,60 @@ export function TradeSheet({
           </div>
 
           <div className="flex justify-center -my-2">
-            <Button
+            <button
               type="button"
-              variant="outline"
-              size="sm"
               onClick={swap}
-              className="gap-1.5"
               aria-label="Swap give and get sides"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-surface text-on-surface-variant text-xs font-semibold hover:bg-surface-high active:scale-95 transition-all"
             >
               <ArrowDownUp className="size-3.5" />
               Swap sides
-            </Button>
+            </button>
           </div>
 
           {/* Totals */}
-          <section className="border rounded-lg p-3 bg-card flex flex-col gap-1.5 text-sm">
+          <section className="rounded-2xl bg-surface-lowest p-4 shadow-soft flex flex-col gap-2 text-sm">
             <div className="flex items-center justify-between">
-              <span className="flex items-center gap-1.5 text-muted-foreground">
+              <span className="flex items-center gap-1.5 text-on-surface-variant">
                 <ArrowRight className="size-3.5" /> You give
               </span>
-              <span className="tabular-nums font-medium">
+              <span className="tabular-nums font-semibold text-foreground">
                 {formatMoney(giveTotal)}
                 {giveAssets.length > 0 && (
-                  <span className="text-muted-foreground"> · {giveAssets.length} card{giveAssets.length === 1 ? "" : "s"}</span>
+                  <span className="text-on-surface-variant">
+                    {" "}
+                    · {giveAssets.length} card
+                    {giveAssets.length === 1 ? "" : "s"}
+                  </span>
                 )}
               </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="flex items-center gap-1.5 text-muted-foreground">
+              <span className="flex items-center gap-1.5 text-on-surface-variant">
                 <ArrowLeft className="size-3.5" /> You get
               </span>
-              <span className="tabular-nums font-medium">
+              <span className="tabular-nums font-semibold text-foreground">
                 {formatMoney(getTotal)}
                 {getAssets.length > 0 && (
-                  <span className="text-muted-foreground"> · {getAssets.length} card{getAssets.length === 1 ? "" : "s"}</span>
+                  <span className="text-on-surface-variant">
+                    {" "}
+                    · {getAssets.length} card
+                    {getAssets.length === 1 ? "" : "s"}
+                  </span>
                 )}
               </span>
             </div>
             {partner && (giveTotal !== 0 || getTotal !== 0) && (
-              <div className="flex items-center justify-between pt-1.5 border-t">
-                <span className="text-muted-foreground">Net cash</span>
+              <div className="flex items-center justify-between pt-2 border-t border-surface">
+                <span className="text-on-surface-variant">Net cash</span>
                 <span
                   className={cn(
-                    "tabular-nums font-semibold",
+                    "tabular-nums font-bold",
                     getTotal - giveTotal > 0
-                      ? "text-[var(--mono-green)]"
+                      ? "text-received"
                       : getTotal - giveTotal < 0
-                        ? "text-destructive"
-                        : "",
+                        ? "text-sent"
+                        : "text-foreground",
                   )}
                 >
                   {getTotal - giveTotal > 0 ? "+" : ""}
@@ -232,25 +261,18 @@ export function TradeSheet({
               </div>
             )}
           </section>
+        </div>
 
-          <div className="flex gap-2 pt-1">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onClose}
-              className="flex-1"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              onClick={onSubmit}
-              disabled={submitting || !partner}
-              className="flex-1"
-            >
-              {submitting ? "Sending..." : `Send to ${partner?.name ?? "—"}`}
-            </Button>
-          </div>
+        <div className="absolute bottom-0 left-0 right-0 px-5 pt-4 pb-5 bg-gradient-to-t from-background via-background to-transparent flex flex-col gap-2">
+          <Button
+            type="button"
+            onClick={onSubmit}
+            disabled={submitting || !partner}
+            className="h-14 rounded-full text-base font-semibold bg-brand text-white shadow-ambient-brand hover:bg-brand/90 active:scale-95 flex items-center justify-center gap-2"
+          >
+            {submitting ? "Sending..." : `Send to ${partner?.name ?? "—"}`}
+            {!submitting && <CheckCircle className="size-5" />}
+          </Button>
         </div>
       </SheetContent>
     </Sheet>
@@ -260,7 +282,7 @@ export function TradeSheet({
 function TradeSidePanel({
   role,
   title,
-  accent,
+  tone,
   you,
   partner,
   cash,
@@ -271,7 +293,7 @@ function TradeSidePanel({
 }: {
   role: "give" | "get";
   title: string;
-  accent: string;
+  tone: "sent" | "received";
   you: Player;
   partner: Player | null;
   cash: string;
@@ -282,40 +304,56 @@ function TradeSidePanel({
 }) {
   const source = role === "give" ? you : partner;
   const sourceAssets = source?.assets ?? [];
+  const accent = tone === "sent" ? "text-sent" : "text-received";
+  const accentBar = tone === "sent" ? "bg-sent" : "bg-received";
 
   return (
-    <section className="border rounded-lg p-3 bg-card flex flex-col gap-3">
-      <header className="flex items-center justify-between">
-        <span className={cn("text-xs uppercase tracking-wide font-semibold", accent)}>
+    <section className="rounded-2xl bg-surface-lowest p-4 shadow-soft flex flex-col gap-3 relative overflow-hidden">
+      <span className={cn("absolute top-0 left-0 right-0 h-[4px]", accentBar)} aria-hidden />
+      <header className="flex items-center justify-between mt-1">
+        <span
+          className={cn(
+            "text-[11px] uppercase tracking-[0.06em] font-bold",
+            accent,
+          )}
+        >
           {title}
         </span>
-        <span className="text-xs text-muted-foreground truncate">
+        <span className="text-xs text-on-surface-variant truncate font-medium">
           {source ? source.name : "—"}
         </span>
       </header>
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor={`${role}-cash`} className="text-xs">
+        <Label htmlFor={`${role}-cash`} className="text-xs font-semibold">
           Cash
         </Label>
-        <Input
-          id={`${role}-cash`}
-          type="number"
-          inputMode="numeric"
-          min={0}
-          value={cash}
-          onChange={(e) => setCash(e.target.value)}
-          placeholder="0"
-        />
+        <div className="relative">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-base font-bold text-on-surface-variant pointer-events-none">
+            $
+          </span>
+          <Input
+            id={`${role}-cash`}
+            type="number"
+            inputMode="numeric"
+            min={0}
+            value={cash}
+            onChange={(e) => setCash(e.target.value)}
+            placeholder="0"
+            className="h-11 pl-8 pr-3 text-base font-bold tabular-nums rounded-xl bg-surface border-transparent focus-visible:bg-surface-lowest focus-visible:border-brand"
+          />
+        </div>
       </div>
 
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
-          <Label className="text-xs">Properties ({assetIds.length})</Label>
+          <Label className="text-xs font-semibold">
+            Properties ({assetIds.length})
+          </Label>
           {assetIds.length > 0 && (
             <button
               type="button"
-              className="text-[11px] text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
+              className="text-[11px] font-semibold text-on-surface-variant hover:text-foreground underline-offset-2 hover:underline"
               onClick={() => assetIds.forEach((id) => onToggle(id))}
             >
               Clear
@@ -323,7 +361,7 @@ function TradeSidePanel({
           )}
         </div>
         {sourceAssets.length === 0 ? (
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-on-surface-variant italic">
             {source ? "No properties to offer." : "Pick a partner above."}
           </p>
         ) : (

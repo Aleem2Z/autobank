@@ -1,16 +1,18 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Room } from "@/lib/game/types";
 import { api } from "./api";
 
-export type RoomStatus = "loading" | "ready" | "error";
+export type RoomStatus = "loading" | "ready" | "needs-join" | "error";
 
 export interface UseRoomResult {
   room: Room | null;
   you: string | null;
   status: RoomStatus;
   error: string | null;
+  /** Re-fetch state — call after the user completes the join overlay. */
+  refresh: () => void;
 }
 
 /**
@@ -24,7 +26,10 @@ export function useRoom(code: string): UseRoomResult {
   const [you, setYou] = useState<string | null>(null);
   const [status, setStatus] = useState<RoomStatus>("loading");
   const [error, setError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
   const cancelledRef = useRef(false);
+
+  const refresh = useCallback(() => setReloadKey((n) => n + 1), []);
 
   useEffect(() => {
     cancelledRef.current = false;
@@ -38,10 +43,20 @@ export function useRoom(code: string): UseRoomResult {
         setRoom(initial.room);
         setYou(initial.you);
         setStatus("ready");
+        setError(null);
       } catch (err) {
         if (cancelledRef.current) return;
-        setError(err instanceof Error ? err.message : String(err));
-        setStatus("error");
+        const message = err instanceof Error ? err.message : String(err);
+        // Distinguish "you don't have a session for this room yet" from
+        // genuinely broken state. The Not-in-room signal lets RoomClient
+        // render the join overlay instead of an error panel.
+        if (/not in room/i.test(message)) {
+          setStatus("needs-join");
+          setError(null);
+        } else {
+          setError(message);
+          setStatus("error");
+        }
         return;
       }
 
@@ -78,7 +93,7 @@ export function useRoom(code: string): UseRoomResult {
       es?.close();
       if (interval) clearInterval(interval);
     };
-  }, [code]);
+  }, [code, reloadKey]);
 
-  return { room, you, status, error };
+  return { room, you, status, error, refresh };
 }
