@@ -47,10 +47,8 @@ function breakdown(cash: number): BillCount[] {
     .map((d) => ({ denom: d, count: counts[d]! }));
 }
 
-const MAX_VISIBLE = 5;
-
-// MoneyBill renders LANDSCAPE (188w × 92h). For the fan to read like
-// the Gemini reference (where bills are portrait and fan around their
+// MoneyBill renders LANDSCAPE (188w × 92h). For the fan to read like the
+// Gemini reference (where bills are portrait and fan around their
 // bottom-center), each bill is wrapped in a PORTRAIT box and pre-rotated
 // 90° inside that box. Text ends up sideways — that's intentional and
 // matches how real fanned cash looks.
@@ -59,10 +57,36 @@ const BILL_H = 92;
 const PORTRAIT_W = BILL_H; // 92
 const PORTRAIT_H = BILL_W; // 188
 
-const TOTAL_ANGLE = 110; // total fan spread in degrees
+/**
+ * Hard cap on individually rendered bills — the breakdown already keeps
+ * the visible count modest for typical Monopoly amounts (≤30 for any
+ * balance up to ~$3000). Past this we'd just render too many DOM nodes
+ * with no visual gain.
+ */
+const MAX_BILLS = 32;
+
+/** Total fan spread in degrees, scaled by bill count. */
+function fanSpread(billCount: number): number {
+  if (billCount <= 1) return 0;
+  // Smooth ramp: 5 bills → 80°, 15 → 130°, 25+ → 160°. Bigger fans for
+  // bigger hands, like a real spread of cash.
+  return Math.min(160, 60 + billCount * 4);
+}
 
 export function BillFan({ cash }: { cash: number }) {
-  const bills = useMemo(() => breakdown(cash).slice(0, MAX_VISIBLE), [cash]);
+  // Expand the per-denomination breakdown into one entry per individual
+  // bill so the fan literally sums to the displayed balance.
+  const bills = useMemo(() => {
+    const grouped = breakdown(cash);
+    const out: { denom: Denomination; key: string }[] = [];
+    for (const g of grouped) {
+      for (let i = 0; i < g.count; i++) {
+        out.push({ denom: g.denom, key: `${g.denom}-${i}` });
+        if (out.length >= MAX_BILLS) return out;
+      }
+    }
+    return out;
+  }, [cash]);
 
   if (bills.length === 0) {
     return (
@@ -76,24 +100,26 @@ export function BillFan({ cash }: { cash: number }) {
   }
 
   const total = bills.length;
-  const startAngle = -TOTAL_ANGLE / 2;
-  const step = total > 1 ? TOTAL_ANGLE / (total - 1) : 0;
+  const spread = fanSpread(total);
+  const startAngle = -spread / 2;
+  const step = total > 1 ? spread / (total - 1) : 0;
 
   return (
     <div
       className="relative w-full h-full"
-      aria-label={`Notes in hand: ${bills.map((b) => `$${b.denom}`).join(", ")}`}
+      aria-label={`${total} note${total === 1 ? "" : "s"} in hand totalling $${cash.toLocaleString()}`}
       role="img"
     >
       <AnimatePresence initial={false}>
         {bills.map((b, idx) => {
           const rot = startAngle + step * idx;
-          // bills are sorted largest-first; idx 0 (largest) goes to z=0
-          // (back of fan), smallest goes to highest z (front, on top).
+          // Largest bill (idx 0) at z=0 (back). Smallest (highest idx)
+          // sits in front, on top — matches the reference photo and the
+          // earlier preference for "highest denominations at the bottom".
           const z = idx;
           return (
             <motion.div
-              key={b.denom}
+              key={b.key}
               layout
               initial={{ opacity: 0, scale: 0.7, rotate: rot, y: 20 }}
               animate={{ opacity: 1, scale: 1, rotate: rot, y: 0 }}
