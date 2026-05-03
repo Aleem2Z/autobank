@@ -6,9 +6,10 @@ export function sweepExpired(room: Room, now = Date.now()): { room: Room; promot
   const promoted: string[] = [];
   const txs = [...next.transactions];
   for (const tx of txs) {
+    // Auto-confirm any pending tx whose objection window has passed.
+    // Currently that's request-bank and pay-bank-with-asset (buy property).
     if (
       tx.status === "pending" &&
-      tx.kind === "request-bank" &&
       tx.objectionDeadline &&
       tx.objectionDeadline <= now
     ) {

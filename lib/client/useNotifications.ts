@@ -78,6 +78,23 @@ function describeForConfirm(tx: Transaction, room: Room, you: string): string {
 function describeForObject(tx: Transaction, room: Room): string {
   const proposerName = nameOf(room, tx.proposedBy);
   const reason = reasonLabel(tx);
+
+  // Buy from bank: "X is buying Boardwalk for $400 — tap to object"
+  if (tx.kind === "pay-bank" && (tx.assets?.length ?? 0) > 0) {
+    const assetIds = (tx.assets ?? [])
+      .filter((a) => a.toPlayerId === tx.proposedBy)
+      .map((a) => a.defId);
+    const names = assetIds
+      .map((id) => REASON_LABELS[id as never] ? id : id) // fall back to id
+      .join(", ");
+    const cash = (tx.cash ?? [])
+      .filter((c) => c.fromPlayerId === tx.proposedBy && c.toPlayerId === "bank")
+      .reduce((s, c) => s + c.amount, 0);
+    const cashStr = cash > 0 ? ` for ${formatMoney(cash)}` : "";
+    return `${proposerName} is buying ${names || "a property"}${cashStr} — tap to object (${reason})`;
+  }
+
+  // Request from bank: "X is requesting $200 from the Bank"
   const amount = (tx.cash ?? [])
     .filter((c) => c.fromPlayerId === "bank" && c.toPlayerId === tx.proposedBy)
     .reduce((s, c) => s + c.amount, 0);
@@ -149,8 +166,8 @@ export function useNotifications(room: Room | null, you: string | null): void {
           tx.status === "pending" && (!before || before.status !== "pending");
 
         if (becamePending && !youProposed) {
-          // You can object (request-bank by another)
-          if (tx.kind === "request-bank") {
+          // You can object (any tx with an objection window)
+          if (tx.objectionDeadline) {
             const key = `${tx.id}:object` as NotifiedKey;
             if (!notified.has(key)) {
               notified.add(key);

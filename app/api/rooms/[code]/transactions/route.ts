@@ -67,6 +67,15 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ code: stri
     room.players.map((p) => p.id),
   );
 
+  // Pay-bank with an asset transfer (e.g. buying a property) gets a 10s
+  // objection window like request-bank — anyone can object if they
+  // think the buyer is grabbing a property someone else was about to take.
+  // Plain pay-bank (just cash) auto-confirms.
+  const isBuyFromBank =
+    parsed.data.kind === "pay-bank" && (parsed.data.assets?.length ?? 0) > 0;
+  const usesObjectionWindow =
+    parsed.data.kind === "request-bank" || isBuyFromBank;
+
   const tx: Transaction = {
     id: nanoid(10),
     kind: parsed.data.kind as TxKind,
@@ -80,13 +89,13 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ code: stri
     requiresConfirmFrom: requires,
     confirmedBy: [],
     status: "pending",
-    objectionDeadline: parsed.data.kind === "request-bank" ? Date.now() + 10_000 : undefined,
+    objectionDeadline: usesObjectionWindow ? Date.now() + 10_000 : undefined,
   };
 
   const err = validateProposal(room, tx);
   if (err) return NextResponse.json({ error: err }, { status: 400 });
 
-  if (requires.length === 0 && tx.kind !== "request-bank") {
+  if (requires.length === 0 && !usesObjectionWindow) {
     tx.status = "confirmed";
     const next = applyTransaction(room, tx);
     next.transactions = [...next.transactions, tx];
@@ -107,7 +116,15 @@ function computeConfirmers(
   allPlayerIds: string[],
 ): string[] {
   const set = new Set<string>();
-  if (body.kind === "p2p" || body.kind === "asset-move") {
+
+  // P2P and Split: NO confirmation. You're giving away your own money,
+  // there's nothing to cheat (the recipient can only gain). Auto-applies.
+  // Plain Pay Bank: same — no confirmation. Auto-applies.
+
+  if (body.kind === "asset-move") {
+    // Trades: BOTH parties must confirm because both sides are exchanging
+    // things — without dual confirm, anyone could unilaterally take
+    // someone else's property.
     for (const m of body.cash ?? []) {
       if (m.fromPlayerId !== proposer && m.fromPlayerId !== "bank") set.add(m.fromPlayerId);
       if (m.toPlayerId !== proposer && m.toPlayerId !== "bank") set.add(m.toPlayerId);
@@ -116,14 +133,14 @@ function computeConfirmers(
       if (a.fromPlayerId !== proposer && a.fromPlayerId !== "bank") set.add(a.fromPlayerId);
       if (a.toPlayerId !== proposer && a.toPlayerId !== "bank") set.add(a.toPlayerId);
     }
-  } else if (body.kind === "split") {
-    for (const c of body.splitChildren ?? []) {
-      if (c.toPlayerId !== proposer) set.add(c.toPlayerId);
-    }
   } else if (body.kind === "request-bank") {
-    for (const id of allPlayerIds) {
-      if (id !== proposer) set.add(id);
-    }
+    // Pull from bank: every other player can OBJECT during the
+    // 10s window. requiresConfirmFrom is empty — confirmation
+    // happens via timeout (sweepExpired) unless someone hits Object.
+    void allPlayerIds;
   }
+  // p2p, pay-bank, split: empty set → auto-applies
+  // (pay-bank with asset is handled separately via the objection window
+  //  in the route — same flow as request-bank, no confirmers list)
   return [...set];
 }

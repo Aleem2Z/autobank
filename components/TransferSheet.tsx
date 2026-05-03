@@ -132,10 +132,11 @@ export function TransferSheet({
         cash,
         assets,
       });
+      const isBuyProperty = kind === "pay-bank" && reason === "buy-property" && !!propertyId;
       toast.success(
-        kind === "request-bank"
-          ? "Requested. Auto-confirms in 10s unless objected."
-          : "Proposed.",
+        kind === "request-bank" || isBuyProperty
+          ? "Sent. Auto-confirms in 10s unless objected."
+          : "Sent.",
       );
       onClose();
     } catch (err) {
@@ -151,8 +152,10 @@ export function TransferSheet({
           <SheetTitle>{titleOf(kind)}</SheetTitle>
           <SheetDescription>
             {kind === "request-bank"
-              ? "Request will auto-confirm in 10 seconds unless someone objects."
-              : "Proposes a transaction. Affected players must confirm."}
+              ? "Auto-confirms in 10 seconds unless someone objects."
+              : kind === "pay-bank" && reason === "buy-property"
+                ? "Buying property gives others 10 seconds to object."
+                : "Sends instantly. Receiver gets a notification."}
           </SheetDescription>
         </SheetHeader>
 

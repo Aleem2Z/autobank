@@ -177,7 +177,9 @@ export function PendingTransaction({
   const [busy, setBusy] = useState<null | "confirm" | "reject">(null);
   const [now, setNow] = useState(Date.now());
 
-  const isRequestBank = tx.kind === "request-bank";
+  // "Objection mode": tx auto-confirms after the window unless someone hits Object.
+  // Currently used by request-bank AND pay-bank-with-asset (buy property).
+  const isRequestBank = !!tx.objectionDeadline;
   const canConfirm =
     !isRequestBank &&
     tx.requiresConfirmFrom.includes(you) &&

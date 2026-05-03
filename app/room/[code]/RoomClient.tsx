@@ -20,9 +20,13 @@ import { cn } from "@/lib/utils";
 function pendingForYou(txs: Transaction[], you: string): Transaction[] {
   return txs.filter((tx) => {
     if (tx.status !== "pending") return false;
-    if (tx.kind === "request-bank") {
+    // Any tx with an objection window — anyone other than the proposer
+    // sees the prompt with an Object button until the window expires.
+    if (tx.objectionDeadline) {
       return tx.proposedBy !== you;
     }
+    // Otherwise: shown only to the parties who must confirm (currently
+    // just trades — both partners).
     return (
       tx.requiresConfirmFrom.includes(you) && !tx.confirmedBy.includes(you)
     );
