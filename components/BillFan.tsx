@@ -6,11 +6,6 @@ import { MoneyBill, type Denomination } from "@/components/MoneyBill";
 
 const DENOMS: Denomination[] = [500, 100, 50, 20, 10, 5, 1];
 
-/**
- * Per-denomination soft caps that mirror the real Monopoly starting wallet
- * distribution. Forces variety so round amounts produce a varied fan
- * instead of collapsing into a single denomination.
- */
 const SOFT_CAPS: Record<Denomination, number> = {
   500: 2,
   100: 2,
@@ -54,14 +49,23 @@ function breakdown(cash: number): BillCount[] {
 
 const MAX_VISIBLE = 5;
 
+// Bill image dimensions (md size = 188×92). Half-width is the magic
+// number for `margin-left: -half` so the bill's bottom-CENTER lines up
+// with the parent's left:50% anchor.
+const BILL_W = 188;
+const BILL_HALF = BILL_W / 2;
+
+/** Total fan spread in degrees, evenly distributed across visible bills. */
+const TOTAL_ANGLE = 120;
+
 /**
- * Hand-of-cards fan of Monopoly notes.
+ * Bills fanned around a single bottom-CENTER pivot — Gemini's geometry.
+ * Each bill sits at left:50%, margin-left:-halfWidth, bottom:0, so they
+ * all share the exact same anchor point at their bottom-center; rotating
+ * each one symmetrically spreads them out like a real hand of cards.
  *
- * All bills share a single pivot at their own bottom-left corner — the
- * front bill (largest denomination) lies nearly horizontal extending
- * right; each smaller denomination behind it rotates further
- * counter-clockwise so the stack sweeps up and to the right like a
- * real hand of fanned bills held in your right hand.
+ * Largest denomination at z-index 0 (back of fan) so smaller bills layer
+ * on top of it.
  */
 export function BillFan({ cash }: { cash: number }) {
   const bills = useMemo(() => breakdown(cash).slice(0, MAX_VISIBLE), [cash]);
@@ -77,59 +81,48 @@ export function BillFan({ cash }: { cash: number }) {
     );
   }
 
+  const total = bills.length;
+  const startAngle = -TOTAL_ANGLE / 2;
+  const step = total > 1 ? TOTAL_ANGLE / (total - 1) : 0;
+
   return (
     <div
       className="relative w-full h-full"
       aria-label={`Notes in hand: ${bills.map((b) => `$${b.denom}`).join(", ")}`}
       role="img"
     >
-      <BillHand bills={bills} />
+      <AnimatePresence initial={false}>
+        {bills.map((b, idx) => {
+          const rot = startAngle + step * idx;
+          // Higher idx = on top. Bills are sorted largest-first by
+          // breakdown(), so $500 (idx 0) sits at the back and the
+          // smallest denomination (idx N-1) sits in front, on top.
+          const z = idx;
+          return (
+            <motion.div
+              key={b.denom}
+              layout
+              initial={{ opacity: 0, scale: 0.7, rotate: rot, y: 20 }}
+              animate={{ opacity: 1, scale: 1, rotate: rot, y: 0 }}
+              exit={{ opacity: 0, scale: 0.7, rotate: rot, y: 20 }}
+              transition={{
+                type: "spring",
+                stiffness: 280,
+                damping: 24,
+                opacity: { duration: 0.2 },
+              }}
+              className="absolute bottom-0 left-1/2"
+              style={{
+                zIndex: z,
+                marginLeft: -BILL_HALF,
+                transformOrigin: "bottom center",
+              }}
+            >
+              <MoneyBill denomination={b.denom} count={1} size="md" />
+            </motion.div>
+          );
+        })}
+      </AnimatePresence>
     </div>
-  );
-}
-
-function BillHand({ bills }: { bills: BillCount[] }) {
-  // Smallest denomination sits at the FRONT of the fan (highest z, least
-  // rotated) and the largest bill is BEHIND everything else, peeking out
-  // at the steepest rotation. Same convention as the reference photo.
-  const fanOrder = [...bills].reverse();
-  const total = fanOrder.length;
-  // Front bill horizontal, each subsequent bill +32° CCW from the previous.
-  // Five bills × 32° = 128° total spread — bills sweep OVER the pivot like
-  // the reference photo (the back bill ends up near-upside-down).
-  const STEP_DEG = 32;
-  return (
-    <>
-      {fanOrder.map((b, idx) => {
-        const rot = -idx * STEP_DEG;
-        // idx 0 (smallest) sits on top.
-        const z = total - idx;
-        return (
-          <motion.div
-            key={b.denom}
-            layout
-            initial={{ opacity: 0, scale: 0.7, rotate: rot + 30 }}
-            animate={{ opacity: 1, scale: 1, rotate: rot }}
-            exit={{ opacity: 0, scale: 0.7, rotate: rot + 30 }}
-            transition={{
-              type: "spring",
-              stiffness: 280,
-              damping: 24,
-              opacity: { duration: 0.2 },
-            }}
-            className="absolute bottom-0 left-0"
-            style={{
-              zIndex: z,
-              // All bills pivot around the SAME bottom-left point — the
-              // shared anchor is what turns this into a real hand-fan
-              // instead of a pile of rotated rectangles.
-              transformOrigin: "bottom left",
-            }}
-          >
-            <MoneyBill denomination={b.denom} count={1} size="sm" />
-          </motion.div>
-        );
-      })}
-    </>
   );
 }

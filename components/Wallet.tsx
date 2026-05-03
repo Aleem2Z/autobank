@@ -19,7 +19,7 @@ export function Wallet({
           tucked into the bottom-right. Compact: balance sits top-left,
           fan overlaps the lower-right of the same card. */}
       <div
-        className="relative w-full rounded-[2rem] bg-gradient-hero p-5 pb-6 overflow-hidden shadow-ambient-brand text-white min-h-[230px]"
+        className="relative w-full rounded-[2rem] bg-gradient-hero p-5 pb-3 overflow-hidden shadow-ambient-brand text-white"
         aria-label={`${player.name}'s wallet`}
       >
         {/* Decorative blurred orbs */}
@@ -27,7 +27,7 @@ export function Wallet({
         <div className="absolute bottom-0 left-0 size-40 bg-white/10 rounded-full blur-2xl -ml-8 -mb-8 pointer-events-none" />
 
         {/* Balance — top-left */}
-        <div className="relative z-10 flex flex-col gap-1 min-w-0 max-w-[60%]">
+        <div className="relative z-10 flex flex-col gap-1 min-w-0">
           <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-white/80">
             Available Balance
           </span>
@@ -56,25 +56,11 @@ export function Wallet({
           </div>
         </div>
 
-        {/* Fan: a single 0×0 anchor placed on the LEFT side of the right
-            half of the card. All bills pivot at this point (their own
-            bottom-left corner) and extend up-and-to-the-right, so the
-            front bill (smallest) lies flat extending right and the
-            back bill (largest, e.g. $500) swings nearly vertical. Anchor
-            is offset enough to keep the front bill from clipping the
-            card's right edge. */}
-        <div
-          className="absolute z-0 pointer-events-none"
-          style={{
-            // ~52% from left — leaves ~48% (~170px) of card width for the
-            // front bill (132 sm-bill + headroom) and ~52% leftward for
-            // the back bill which sweeps near-upside-down at 128° rotation.
-            left: "52%",
-            bottom: 16,
-            width: 0,
-            height: 0,
-          }}
-        >
+        {/* Fan area — proper container so the bottom-center pivot has
+            something to anchor to. Width = card width, height = enough to
+            contain the upward-fanned bills without being clipped by the
+            card's overflow-hidden corners. */}
+        <div className="relative z-10 mt-4 h-32 pointer-events-none">
           <BillFan cash={player.cash} />
         </div>
       </div>
