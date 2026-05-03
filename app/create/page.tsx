@@ -51,7 +51,7 @@ export default function CreatePage() {
   }
 
   return (
-    <main className="flex flex-1 flex-col items-center justify-center p-6">
+    <main className="flex flex-1 flex-col items-center justify-center p-6 animate-in fade-in slide-in-from-bottom-3 duration-500">
       <form
         onSubmit={onSubmit}
         className="w-full max-w-md flex flex-col gap-5 border rounded-lg p-5 bg-card"
@@ -141,7 +141,7 @@ export default function CreatePage() {
         </div>
 
         <div className="flex gap-2">
-          <Button type="button" variant="outline" render={<Link href="/" />} className="flex-1">
+          <Button type="button" variant="outline" nativeButton={false} render={<Link href="/" />} className="flex-1">
             Back
           </Button>
           <Button type="submit" disabled={submitting} className="flex-1">

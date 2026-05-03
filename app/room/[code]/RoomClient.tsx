@@ -50,10 +50,10 @@ export default function RoomClient({ code }: { code: string }) {
             {error ?? "You may not be in this room."}
           </p>
           <div className="flex gap-2">
-            <Button variant="outline" render={<Link href={`/join?code=${code}`} />} className="flex-1">
+            <Button variant="outline" nativeButton={false} render={<Link href={`/join?code=${code}`} />} className="flex-1">
               Join
             </Button>
-            <Button render={<Link href="/" />} className="flex-1">
+            <Button nativeButton={false} render={<Link href="/" />} className="flex-1">
               Home
             </Button>
           </div>
@@ -86,7 +86,7 @@ export default function RoomClient({ code }: { code: string }) {
   }
 
   return (
-    <main className="flex flex-1 flex-col">
+    <main className="flex flex-1 flex-col animate-in fade-in duration-500">
       <div className="flex-1 max-w-2xl w-full mx-auto p-3 flex flex-col gap-3">
         {/* Top bar */}
         <header className="flex items-center justify-between gap-2 border rounded-xl px-3 py-2 bg-card">

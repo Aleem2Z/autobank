@@ -53,7 +53,7 @@ function JoinForm() {
   return (
     <form
       onSubmit={onSubmit}
-      className="w-full max-w-md flex flex-col gap-5 border rounded-lg p-5 bg-card"
+      className="w-full max-w-md flex flex-col gap-5 border rounded-lg p-5 bg-card animate-in fade-in slide-in-from-bottom-3 duration-500"
     >
       <header>
         <h1 className="text-2xl font-semibold">Join Room</h1>
@@ -99,7 +99,7 @@ function JoinForm() {
       </div>
 
       <div className="flex gap-2">
-        <Button type="button" variant="outline" render={<Link href="/" />} className="flex-1">
+        <Button type="button" variant="outline" nativeButton={false} render={<Link href="/" />} className="flex-1">
           Back
         </Button>
         <Button type="submit" disabled={submitting} className="flex-1">

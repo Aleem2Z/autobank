@@ -4,7 +4,7 @@ import { MoneyBill } from "@/components/MoneyBill";
 
 export default function Home() {
   return (
-    <main className="flex flex-1 flex-col">
+    <main className="flex flex-1 flex-col animate-in fade-in duration-500">
       <div className="flex-1 max-w-md w-full mx-auto px-6 pt-16 pb-12 flex flex-col gap-10">
         {/* Hero */}
         <header className="relative pt-8">
